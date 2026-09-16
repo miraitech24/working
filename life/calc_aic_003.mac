@@ -1,0 +1,62 @@
+/* ===================================================================== */
+/* CALC-AIC-003: ブラックAI vs ホワイトAI 全面サイバー戦・完全破壊モデル  */
+/* ファイル名: /home/iwamura/ドキュメント/coupling/work_life/calc_aic_003.mac */
+/* ===================================================================== */
+
+/*
+  === 仕様 (Specifications) ===
+  1. 侵入型ブラックAI（ランサムウェア・暴走AI）の増殖動態と、ホワイトAI（アンチAIワクチン）による完全破壊（Kill & Wipe）モデル。
+  2. 単なる緊急遮断（ネットワーク隔離）ではなく、メモリ・ストレージレベルでの不可逆的・即時物理破壊（Total Eradication）を実行。
+  3. 検知前 (t < t_invade): ブラックAIがシステム内部へ急速潜伏・拡大。
+  4. 検知後 (t >= t_invade): ホワイトAIが即座にハイパー破壊プロトコル(k_heavy)を発動し、ブラックAIを瞬時に完全消滅（0化）させる。
+  5. plot2d を用いて独立ウィンドウ (gnuplot) にグラフを出力する。
+
+  === グラフの説明 (Graph Description) ===
+  - グラフ1: ランサムウェア型ブラックAI B(t) の侵入・拡散と、ホワイトAI W(t) による即時完全破壊動態（ミリ秒オーダーでの消滅）。
+  - グラフ2: 完全破壊(k_heavy) と 単なる遮断・不完全破壊(k_light) によるブラックAI生存指数の比較。
+
+  === 結論 (Conclusion) ===
+  - 外部からの侵入・潜伏を行うブラックAIに対しては、エアギャップ等の受動的遮断では内部破壊を抑止できない。
+  - ホワイトAIが検知した瞬間にプロセス・データを完全に上書き・破壊（Wipe）する超強力な攻撃的防衛（Active Offense Defense）を行うことで、ブラックAIの生存確率を決定的にゼロにできる。
+
+  === 考察 (Discussion) ===
+  - サイバー戦下における高度な敵対的AIへの対策は「遮断」ではなく「構造的完全破壊」でなければならない。
+  - カーネル・ファームウェア直下に常駐するホワイトAIに無制限のプロセス消去権限を付与し、ミリ秒単位で即時殲滅を実行する自動化アーキテクチャの構築が数理的・戦略的に必須である。
+*/
+
+/* 描画レンダラーの設定（各グラフを別ウィンドウに表示） */
+set_plot_option([plot_format, gnuplot]);
+
+/* パラメータ設定 */
+r_black  : 1.2;      /* ブラックAIの侵入・自己増殖・拡散速度 */
+t_invade : 3.0;     /* 侵入検知・ホワイトAI総攻撃開始時刻 */
+k_heavy  : 15.0;    /* ホワイトAIの完全破壊力（Kill & Wipe レート: k_heavy >> r_black） */
+k_light  : 2.0;     /* 単なる隔離・不完全破壊力 */
+
+/* ブラックAIの存在量 B(t) - 完全破壊モデル */
+B_heavy(t) := if t < t_invade then exp(r_black * t)
+              else exp(r_black * t_invade) * exp(-(k_heavy - r_black) * (t - t_invade));
+
+/* 比較用：破壊力が弱く潜伏・生き残りを許すモデル */
+B_light(t) := if t < t_invade then exp(r_black * t)
+              else exp(r_black * t_invade) * exp(-(k_light - r_black) * (t - t_invade));
+
+/* ホワイトAIの全破壊攻撃出力 W(t) */
+W_attack(t) := if t < t_invade then 0.0
+               else 200.0 * (1 - exp(-20.0 * (t - t_invade)));
+
+/* 1. ブラックAI侵入とホワイトAIによる即時完全破壊 */
+plot2d([B_heavy(t), W_attack(t)], [t, 0, 8],
+  [xlabel, "Time t (ms)"],
+  [ylabel, "Threat / Neutralization Level"],
+  [legend, "Black AI (Ransomware/Rogue) B(t)", "White AI (Instant Annihilation) W(t)"],
+  [title, "1. CALC-AIC-003: Black AI vs White AI Cyber Warfare (Total Eradication)"]
+);
+
+/* 2. 完全破壊と不完全破壊のブラックAI存続比較 */
+plot2d([B_heavy(t), B_light(t)], [t, 0, 8],
+  [xlabel, "Time t (ms)"],
+  [ylabel, "Black AI Survival Level"],
+  [legend, "Total Overwrite Destruction (k_heavy)", "Incomplete Defense / Interruption (k_light)"],
+  [title, "2. CALC-AIC-003: Total Eradication vs Incomplete Defense"]
+);

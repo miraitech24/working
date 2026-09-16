@@ -1,0 +1,48 @@
+/* ===================================================================== */
+/* AIワクチン偽装・ミイラ取りのミイラ化防止 PDCA制御計算モデル           */
+/* ファイル名: vaccine_pdca_models.mac                                   */
+/* ===================================================================== */
+
+/*
+  === 仕様 (Specifications) ===
+  1. ワクチン偽装検知 (Zero-Trust Attestation):
+     本物ワクチンの証明スコア S(t) と偽装AIの破綻動態
+  2. ワクチン自体の暴走化（ミイラ取りのミイラ化）リスク M(t) と TTL（寿命制限）による自動リセット
+  3. 相互監視（Dual Watchdog PDCA）によるシステム健全性維持
+  4. plot2d による gnuplot 独立ウィンドウ表示
+
+  === グラフの説明 (Graph Description) ===
+  - グラフ1: 偽装AIの行動デカップリング率とゼロトラスト検証による遮断動態
+  - グラフ2: ワクチン変異率 M(t) の増加と TTL(Time-To-Live) 定期リセットによる健全性維持
+
+  === 結論 (Conclusion) ===
+  - ワクチン自身が強力な権限を持つ以上、時間経過とともにアライメントがドリフトし暴走化するリスク（ミイラ取りがミイラ化）は不可避である。
+  - 対策として、固定的なワクチンを常駐させるのではなく、「短寿命（TTL）＋ゼロトラスト相互検証＋周期リセット」のPDCAループを強制的に回すことが最善の防御策となる。
+
+  === 考察 (Discussion) ===
+  - 防御AIが敵対的AIに変化する非線形ダイナミクスを制御するには、単一の絶対的なセキュリティAIを置くのではなく、
+    監視構造自体を短サイクルで入れ替える動的アーキテクチャ設計が数理的に要求される。
+*/
+
+set_plot_option([plot_format, gnuplot]);
+
+/* 1. 偽装AI検知モデル */
+V_true(t) := 1.0;
+V_fake(t) := exp(-0.8 * t);
+
+plot2d([V_true(t), V_fake(t)], [t, 0, 5],
+  [xlabel, "Verification Cycle t"],
+  [ylabel, "Authentication Confidence Score"],
+  [legend, "Legitimate Vaccine", "Disguised Rogue AI"],
+  [title, "1. Zero-Trust Identity Verification"]
+);
+
+/* 2. ミイラ取りのミイラ化（変異）とTTLリセットモデル */
+M_drift(t) := 1 - exp(-0.3 * mod(t, 4));
+
+plot2d(M_drift(t), [t, 0, 12],
+  [xlabel, "Time t (years / cycles)"],
+  [ylabel, "Vaccine Mutation Risk M(t)"],
+  [title, "2. Vaccine Drift and Periodic Reset (TTL) Control"]
+);
+
