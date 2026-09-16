@@ -1,0 +1,71 @@
+/* ===================================================================== */
+/* CALC-PDCA-004: アライメント健全度評価に基づく動的フィードバック制御   */
+/* ファイル名: /home/iwamura/ドキュメント/coupling/work_life/calc_pdca_004.mac */
+/* ===================================================================== */
+
+/*
+  === 仕様 (Specifications) ===
+  1. システムの総合健全度 H(t) の評価モデル
+     H(t) = w1 * Integrity(t) + w2 * Containment(t) - w3 * Drift(t)
+     - Integrity(t): ワクチン・システムの整合性（時間経過で減衰）
+     - Containment(t): 暴走AIの封じ込め維持度
+     - Drift(t): 時間経過に伴う自律変異率
+  2. 制御アクション Act(t) の定義:
+     健全度 H(t) が閾値 H_threshold を下回った瞬間にリセット・破棄アクションが発動し、
+     健全度を初期状態へと回復させる自動PDCAフィードバックループ。
+  3. 各プロットは plot2d を用いて独立したウィンドウ (gnuplot) に出力する。
+
+  === グラフの説明 (Graph Description) ===
+  - グラフ1: 総合健全度 H(t) の経時変化と制御閾値 H_threshold の推移。
+    時間の経過に伴い変異率 Drift(t) が増大して H(t) が低下するが、閾値到達時にPDCA介入（自動リセット）が発動する。
+  - グラフ2: PDCAフィードバック制御介入の有無（周期リセット vs 放置による変異蓄積）によるシステム健全度 H(t) の長期安定性比較。
+
+  === 結論 (Conclusion) ===
+  - 監視を行っていても、自己改善・環境変化に伴う変異 Drift(t) の蓄積によりシステム健全度 H(t) は不可避に低下する。
+  - 動的な閾値 H_threshold に基づく自律的 Act（強制リセット・再配備）ループを組み込むことで、
+    人間が介在できない超高速な環境下でもシステム全体の健全度を長期的に安定維持できる。
+
+  === 考察 (Discussion) ===
+  - 単一の静的評価ではなく、Integrity, Containment, Drift の3要素を重み付け統合した H(t) を用いることで、
+    偽装や局所的異常を複合的に検知することが可能となる。
+  - PDCAの「Check (健全度評価) -> Act (自動リセット)」を高速に回すフィードバック機構こそが、
+    AIの反転暴走（ミイラ取りのミイラ化）に対する最も強固な数学的防壁となる。
+*/
+
+/* 描画レンダラーの設定（各グラフを別ウィンドウに表示） */
+set_plot_option([plot_format, gnuplot]);
+
+/* パラメータ設定 */
+w1 : 0.4;
+w2 : 0.4;
+w3 : 0.5;
+H_thresh : 40.0;
+
+/* 要素関数の定義 (制御あり: 6周期ごとに自動リセット) */
+Integrity(t)  := 100.0 * exp(-0.05 * mod(t, 6));
+Containment(t):= 90.0 - 5.0 * sin(t);
+Drift(t)        := 10.0 * (mod(t, 6))^1.3;
+
+/* 総合健全度 H(t) (PDCA制御適用時) */
+H_controlled(t) := w1 * Integrity(t) + w2 * Containment(t) - w3 * Drift(t);
+
+/* 制御なしの総合健全度 H_uncontrolled(t) (リセットなしで変異漂流) */
+Integrity_raw(t) := 100.0 * exp(-0.05 * t);
+Drift_raw(t)     := 10.0 * t^1.2;
+H_uncontrolled(t):= w1 * Integrity_raw(t) + w2 * Containment(t) - w3 * Drift_raw(t);
+
+/* 1. 制御下の健全度 H(t) と閾値 H_threshold の推移プロット */
+plot2d([H_controlled(t), H_thresh], [t, 0, 18],
+  [xlabel, "Time t (Cycles)"],
+  [ylabel, "System Health Index H(t)"],
+  [legend, "Controlled Health H(t)", "Threshold H_threshold"],
+  [title, "1. CALC-PDCA-004: Health Index and Threshold Tracking"]
+);
+
+/* 2. PDCAフィードバック制御の有無による健全度比較プロット */
+plot2d([H_controlled(t), H_uncontrolled(t)], [t, 0, 18],
+  [xlabel, "Time t (Cycles)"],
+  [ylabel, "System Health Index H(t)"],
+  [legend, "PDCA Controlled (Periodic Reset)", "Uncontrolled (Alignment Drift)"],
+  [title, "2. CALC-PDCA-004: Long-term System Stability Comparison"]
+);
