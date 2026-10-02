@@ -1,0 +1,37 @@
+/* #3003: 重力潮汐力緩和解析 */
+kill(all)$
+
+/* 1. 物理定数とパラメータの定義 */
+c : 2.99792458e8$    /* 光速 [m/s] */
+g_earth : 9.80665$    /* 地球の重力加速度 [m/s^2] */
+delta_L : 1.7$        /* 通過者の身長 [m] */
+
+/* 2. 潮汐加速度の計算式 (簡略化した曲率モデル) */
+/* a_tidal = (c^2 / r0^2) * delta_L */
+a_tidal_func(r0) := (c^2 / r0^2) * delta_L$
+
+/* 3. 半径 1.0m 時の負荷計算 */
+r0_val : 1.0$
+a_tidal_val : float(a_tidal_func(r0_val))$
+g_load : a_tidal_val / g_earth$
+
+/* 4. 結果の出力 */
+print("--- #3003 重力潮汐力解析レポート ---")$
+disp(a_tidal = (c^2 / r0^2) * delta_L)$
+print("スロート半径 r0 =", r0_val, "[m] における潮汐加速度:")$
+print(a_tidal_val, "[m/s^2]")$
+print("地球重力倍率 (G負荷):", g_load, "[G]")$
+
+/* 5. Python連成用データ出力 (JSON) */
+filename : "params_3003.json"$
+s : openw(filename)$
+printf(s, "{~%")$
+printf(s, "  \"r0\": ~e,~%", r0_val)$
+printf(s, "  \"g_load\": ~e,~%", g_load)$
+printf(s, "  \"limit_exceeded\": ~a~%", if g_load > 10 then "true" else "false")$
+printf(s, "}~%")$
+close(s)$
+
+print("--- ファイル出力完了: ", filename, " ---")$
+
+

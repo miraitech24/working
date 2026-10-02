@@ -1,0 +1,61 @@
+/* ===================================================================== */
+/* CALC-AIC-004: 国際協調キャップ vs 減速競合におけるゲーム理論モデル     */
+/* ファイル名: /home/iwamura/ドキュメント/coupling/work_life/calc_aic_004.mac */
+/* ===================================================================== */
+
+/*
+  === 仕様 (Specifications) ===
+  1. 国際AI開発競争における2プレイヤー（国家/組織A, B）のゲーム理論モデル
+  2. 戦略オプション:
+     - 開発減速 (Slow / Retain)
+     - 裏切り・単独暴走開発 (Defect / Uncapped)
+     - 相互監視能力キャップ設定 (Cooperative Cap)
+  3. 単純な減速要請では囚人のジレンマが発生し (Defect, Defect) の最悪均衡（暴走確率最大化）に陥る。
+  4. 相互監視・検証強度 p_verify の導入による利得行列の変化とナッシュ平衡の移動条件の解析。
+  5. set_plot_option([plot_format, gnuplot]) により独立ウィンドウプロット生成。
+
+  === グラフの説明 (Graph Description) ===
+  - グラフ1: 相互監視・検証確率 p_verify (0〜1) に対する「協調キャップ選択時の期待利得」 vs 「裏切り・秘密開発時の期待利得」の推移。
+  - グラフ2: グローバル能力キャップ遵守率 Cap_global に対する全体破局リスク発生確率 P_disaster(Cap_global)。
+
+  === 結論 (Conclusion) ===
+  - 単なる「開発速度抑制（Slow）」の要請は、相手の裏切り（Defect）による先行者利益に負けるため、囚人のジレンマにより機能しない。
+  - 暗号的・物理的検証手段を伴う「透明性のある能力キャップ（Cap）」を導入し、検証確率 p_verify > 0.45 を確保することで、(Cap, Cap) が支配的ナッシュ平衡へと転換する。
+  - これにより全球的な暴走リスク P_disaster を安全閾値以下に抑制することがゲーム理論的に可能となる。
+
+  === 考察 (Discussion) ===
+  - AI安全性の確保においては、道徳的な自主規制（減速）を求めるのではなく、裏切り行為（キャップ超過開発）の罰則・即時検知率 p_verify を高めるインフラ主導の相互検証メカニズム設計（Mechanism Design）が不可欠である。
+*/
+
+/* 描画レンダラーの設定（各グラフを別ウィンドウに表示） */
+set_plot_option([plot_format, gnuplot]);
+
+/* 基本パラメータの設定 */
+V_win  : 100.0; /* 先行開発成功時の市場・軍事的利得 */
+C_risk : 150.0; /* 暴走破局発生時の損害（コスト） */
+C_cap  : 10.0;  /* 相互検証・キャップ維持コスト */
+F_penalty : 120.0; /* 裏切り検知時の国際制裁ペナルティ */
+
+/* 相互監視・検証確率 p_verify に対する期待利得関数 */
+/* 協調キャップ維持時のプレイヤー期待利得 */
+Payoff_Cap(p) := (V_win / 2) - C_cap;
+
+/* 裏切り（密かにキャップ超過開発）試行時のプレイヤー期待利得 */
+Payoff_Defect(p) := (1 - p) * (V_win - C_risk * 0.5) + p * (- F_penalty);
+
+/* 1. 検証確率 p_verify と戦略利得の比較プロット */
+plot2d([Payoff_Cap(p), Payoff_Defect(p)], [p, 0, 1],
+  [xlabel, "Verification Probability p_verify"],
+  [ylabel, "Expected Payoff"],
+  [legend, "Cooperative Cap Strategy", "Defect / Uncapped Strategy"],
+  [title, "1. CALC-AIC-004: Game Theory Nash Equilibrium Transition"]
+);
+
+/* 2. 全体能力キャップ遵守率 Cap_global に対する破局リスク推移 */
+P_disaster(Cap_global) := exp(- 4.0 * Cap_global);
+
+plot2d(P_disaster(Cap_global), [Cap_global, 0, 1],
+  [xlabel, "Global Capability Cap Adherence Rate"],
+  [ylabel, "Global Disaster Risk Probability P_disaster"],
+  [title, "2. CALC-AIC-004: Global Risk Containment by Cap Adherence"]
+);

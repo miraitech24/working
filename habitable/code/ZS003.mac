@@ -1,0 +1,116 @@
+/* ZS-003: Final fixed version */
+print("");
+print("==========================================");
+print("ZS-003: Arrival in 0 seconds analysis");
+print("==========================================");
+/* Constants */
+c: 299792458;
+L: 4.2 * 9.461e15;  /* 4.2 light years */
+
+/* Safe time dilation function */
+time_dilation_factor(v) := block(
+    [ratio],
+    ratio: v^2/c^2,
+    if abs(1 - ratio) < 1e-10 then 1e10
+    else 1/sqrt(1 - ratio)
+);
+/* 1. Basic calculations */
+print("");
+print("1. Time dilation:");
+for v_frac in [0.1, 0.5, 0.9, 0.99, 0.999] do (
+    v: v_frac * c,
+    gamma: float(time_dilation_factor(v)),
+    printf(true, "v = ~fc: gamma = ~f~%", v_frac, gamma)
+);
+/* 2. Trip analysis */
+print("");
+print("2. 4.2 light year trip:");
+v_frac: 0.999;
+v: v_frac * c;
+gamma_val: float(time_dilation_factor(v));
+t_earth: float(L/v);  /* Earth time */
+t_ship: float(t_earth/gamma_val);  /* Ship time */
+
+printf(true, "At v = ~fc:~%", v_frac);
+printf(true, "  Earth time: ~e s = ~f years~%", 
+       t_earth, t_earth/(365.25*24*3600));
+printf(true, "  Ship time: ~e s = ~f years~%", 
+       t_ship, t_ship/(365.25*24*3600));
+printf(true, "  Time dilation factor: ~f~%", gamma_val);
+/* 3. Plotting */
+print("");
+print("3. Plotting:");
+/* Plot 1: Gamma vs v/c */
+v_plot: makelist(0.01 + 0.989*i/50, i, 0, 50);
+gamma_plot: [];
+for v_frac_plot in v_plot do (
+    v_plot_val: v_frac_plot * c,
+    gamma_plot_val: float(time_dilation_factor(v_plot_val)),
+    gamma_plot: append(gamma_plot, [gamma_plot_val])
+);
+set_plot_option([plot_format, gnuplot]);
+plot2d([discrete, v_plot, gamma_plot],
+    [xlabel, "v/c"],
+    [ylabel, "gamma"],
+    [title, "Time dilation factor"]);
+/* Plot 2: Ship time vs v/c */
+ship_time_plot: [];
+for v_frac_plot in v_plot do (
+    v_plot_val: v_frac_plot * c,
+    gamma_plot_val: float(time_dilation_factor(v_plot_val)),
+    t_earth_plot: L/v_plot_val,
+    t_ship_plot: t_earth_plot/gamma_plot_val,
+    ship_time_plot: append(ship_time_plot, [t_ship_plot])
+);
+plot2d([discrete, v_plot, ship_time_plot],
+    [xlabel, "v/c"],
+    [ylabel, "Ship time (seconds)"],
+    [title, "Ship time for 4.2 ly trip"],
+    [logy, true]);
+/* 4. Save results - fixed printf statements */
+print("");
+print("4. Saving results...");
+f: openw("zs003_final.txt");
+/* Fixed: Use proper format specifiers */
+printf(f, "ZS-003 Results~%");
+printf(f, "==============~%~%");
+printf(f, "Time dilation factors:~%");
+for v_frac in [0.1, 0.5, 0.9, 0.99, 0.999] do (
+    v_val: v_frac * c,
+    gamma_val: float(time_dilation_factor(v_val)),
+    printf(f, "v = ~fc: gamma = ~f~%", v_frac, gamma_val)
+);
+printf(f, "~%4.2 light year trip at v=0.999c:~%");
+printf(f, "Earth time: ~e seconds~%", t_earth);
+printf(f, "Earth time: ~f years~%", t_earth/(365.25*24*3600));
+printf(f, "Ship time: ~e seconds~%", t_ship);
+printf(f, "Ship time: ~f years~%", t_ship/(365.25*24*3600));
+printf(f, "Time dilation factor: ~f~%~%", gamma_val);
+/* Fixed: No ~ in the middle of string */
+printf(f, "At v=0.999c, ship time is 0.19 years vs 4.2 years Earth time~%");
+printf(f, "For '0 second' arrival, v must be extremely close to c~%");
+printf(f, "Practical interstellar travel requires near-light speeds~%");
+close(f);
+print("Results saved to zs003_final.txt");
+/* 5. Conclusion */
+print("");
+print("==========================================");
+print("ZS-003 COMPLETE");
+print("==========================================");
+print("");
+print("Results:");
+print("* v=0.9c: gamma=2.3");
+print("* v=0.99c: gamma=7.1");
+print("* v=0.999c: gamma=22.4");
+print("* 4.2 ly at v=0.999c:");
+print("  Earth: 4.2 years");
+print("  Ship: 0.19 years");
+print("");
+print("ZS series complete:");
+print("* ZS-001: Energy requirements");
+print("* ZS-002: Causality avoidance");
+print("* ZS-003: Frame definition");
+print("");
+print("Next: Overall integration");
+print("==========================================");
+

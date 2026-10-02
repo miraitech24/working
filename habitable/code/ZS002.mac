@@ -1,0 +1,58 @@
+/* ZS-002 minimal version */
+
+print("");
+print("ZS-002 START");
+
+/* 1. Basic calculations */
+print("");
+print("1. Self-consistency equation x = a*x + 1");
+
+for a in [0.5, 0.9, 1.0, 1.1, 2.0] do (
+    if abs(a - 1.0) < 0.000001 then
+        printf(true, "a=~f: No solution~%", a)
+    else
+        printf(true, "a=~f: x=~f~%", a, 1.0/(1-a))
+);
+
+/* 2. Simple plot */
+print("");
+print("2. Plotting");
+
+x_vals: [];
+for a from -1.9 step 0.2 thru 2.1 do (
+    if abs(a - 1.0) > 0.001 then
+        x: 1.0/(1 - a)
+    else
+        x: 0,
+    x_vals: append(x_vals, [[a, x]])
+);
+
+plot2d([discrete, x_vals],
+    [xlabel, "a"],
+    [ylabel, "x"]);
+
+/* 3. Save to file - simplified */
+print("");
+print("3. Saving to file");
+
+/* Create file manually */
+f: openw("zs002_minimal.txt");
+printf(f, "ZS-002 Results~%");
+printf(f, "===============~%~%");
+printf(f, "Solutions of x = a*x + 1:~%~%");
+
+for a in [0.5, 0.9, 1.0, 1.1, 2.0] do (
+    if abs(a - 1.0) < 0.000001 then
+        printf(f, "a=~f: No solution~%", a)
+    else
+        printf(f, "a=~f: x=~f~%", a, 1.0/(1-a))
+);
+
+close(f);
+
+print("File saved: zs002_minimal.txt");
+
+/* 4. Finish */
+print("");
+print("ZS-002 DONE");
+

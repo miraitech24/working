@@ -1,0 +1,66 @@
+/* ===================================================================== */
+/* CALC-AIC-001: ハード/ソフト能力キャップによる上限飽和モデル            */
+/* ファイル名: /home/iwamura/ドキュメント/coupling/work_life/calc_aic_001.mac */
+/* ===================================================================== */
+
+/*
+  === 仕様 (Specifications) ===
+  1. 能力キャップ（Capability Cap）が存在する場合と存在しない場合の知能増殖動態の解析
+  2. 方程式モデル:
+     - 制限なし (Uncapped): dI/dt = alpha * I^gamma  (gamma > 1) -> 有限時間発散（爆発）
+     - キャップあり (Capped): dI/dt = alpha * I^gamma * (1 - I / I_cap) -> I_capへ収束
+  3. パラメータ設定:
+     - 初期知能レベル I0 = 1.0
+     - 成長効率定数 alpha = 0.1
+     - フィードバック指数 gamma = 1.3
+     - 能力上限キャップ I_cap = 50.0
+  4. set_plot_option([plot_format, gnuplot]) を指定し、各グラフを独立ウィンドウに表示する
+
+  === グラフの説明 (Graph Description) ===
+  - グラフ1: 制限なし爆発モデル I_uncapped(t) と 能力キャップモデル I_capped(t) の知能レベル推移比較
+  - グラフ2: 知能レベル I に対する成長速度 dI/dt の変化（I_cap において成長速度が 0 に収束する様子）
+
+  === 結論 (Conclusion) ===
+  - gamma > 1 の超線形自己改善プロセスでは、制約がない場合、知能 I(t) は有限時間で無限大へ発散（シンギュラリティ爆発）する。
+  - ハード/ソフト能力キャップ I_cap を導入することで、成長曲線はロジスティック型に変換され、有限時間発散を完全に回避して安全な上限値 I_cap に正しく定常収束する。
+
+  === 考察 (Discussion) ===
+  - AIの安全性を担保する上で、単に開発速度（alpha）を低下させる対策は破局の発生時期を先送りするに過ぎない。
+  - 計算リソース（FLOPs）、メモリ容量、または自己改善階層の深さに物理的・論理的キャップ（I_cap）を設ける設計が、超知能爆発を数学的に制御する最も確実なアプローチである。
+*/
+
+/* 描画レンダラーの設定（各グラフを別ウィンドウに表示） */
+set_plot_option([plot_format, gnuplot]);
+
+/* パラメータの定義 */
+I0    : 1.0;
+alpha : 0.1;
+gamma : 1.3;
+I_cap : 50.0;
+
+/* 1. 解析的解および近似モデルの定義 */
+/* 制限なしモデル（有限時間発散解） */
+I_uncapped(t) := (I0^(1 - gamma) - alpha * (gamma - 1) * t)^(1 / (1 - gamma));
+
+/* キャップありモデル（近似ロジスティック解） */
+I_capped(t) := I_cap / (1 + (I_cap / I0 - 1) * exp(-alpha * t * 2.5));
+
+/* グラフ1: 知能レベルの時間推移比較 */
+plot2d([I_uncapped(t), I_capped(t)], [t, 0, 15],
+  [xlabel, "Time t"],
+  [ylabel, "Intelligence Level I(t)"],
+  [legend, "Uncapped Explosion (gamma=1.3)", "Capped Model (I_cap=50)"],
+  [title, "1. CALC-AIC-001: Capability Cap vs Uncapped Intelligence Explosion"]
+);
+
+/* 2. 知能レベル I に対する成長速度 dI/dt の関係 */
+dI_dt_uncapped(I) := alpha * I^gamma;
+dI_dt_capped(I)   := alpha * I^gamma * (1 - I / I_cap);
+
+/* グラフ2: 成長速度の相平面解析プロット */
+plot2d([dI_dt_uncapped(I), dI_dt_capped(I)], [I, 1, 50],
+  [xlabel, "Intelligence Level I"],
+  [ylabel, "Growth Rate dI/dt"],
+  [legend, "Uncapped Growth Rate", "Capped Growth Rate"],
+  [title, "2. CALC-AIC-001: Growth Rate Dynamics & Saturation at I_cap"]
+);

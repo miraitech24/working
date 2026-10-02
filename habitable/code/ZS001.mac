@@ -1,0 +1,253 @@
+/* ========================================================
+   ZS-001: 時空歪みに必要なエネルギー密度 (Maxima)
+   目的: アルクビエレ駆動のエネルギー要件を現実物質で評価
+   ======================================================== */
+/* ---------- 1. 物理定数 ---------- */
+G: 6.67430e-11;        /* 重力定数 [m^3 kg^-1 s^-2] */
+c: 299792458;          /* 光速 [m/s] */
+hbar: 1.054571817e-34; /* 換算プランク定数 [J·s] */
+pi: float(%pi);
+/* ---------- 2. アルクビエレ計量 ---------- */
+print("");
+print("=================================================");
+print("ZS‑001: 時空歪みに必要なエネルギー密度");
+print("=================================================");
+print("");
+printf(true, "アルクビエレ計量 (1994年):~%");
+printf(true, "  ds² = -c²dt² + [dx - v_s f(r_s) dt]² + dy² + dz²~%");
+printf(true, "  ここで v_s はワープ速度, f(r_s) は形状関数~%");
+/* ---------- 3. 必要な負のエネルギー密度 ---------- */
+print("");
+print("=================================================");
+print("3. 必要な負のエネルギー密度の計算");
+print("=================================================");
+/* 3.1 アルクビエレの原論文の結果 */
+/* 必要な負のエネルギー: E ≈ -M v_s² R² / G */
+/* ここで M は船の質量, R はワープバブルの半径, v_s はワープ速度 */
+M_ship: 1000.0;  /* 宇宙船の質量 [kg] (1トン) */
+R_bubble: 10.0;  /* ワープバブルの半径 [m] */
+v_warp_list: [0.1, 0.5, 1.0, 2.0, 5.0, 10.0];  /* ワープ速度 (c単位) */
+
+print("");
+printf(true, "3.1 アルクビエレの原論文に基づく計算:~%");
+printf(true, "  宇宙船質量: M = ~f kg (1トン)~%", M_ship);
+printf(true, "  ワープバブル半径: R = ~f m~%", R_bubble);
+for v_frac in v_warp_list do (
+    v: v_frac * c,
+    E_alcubiere: -M_ship * v^2 * R_bubble^2 / G,
+    printf(true, "  v = ~f c: E ≈ ~e J~%", v_frac, float(E_alcubiere))
+);
+/* 3.2 負のエネルギー密度の計算 */
+rho_alcubiere(v_frac, R) := block(
+    [v],
+    v: v_frac * c,
+    /* エネルギー密度: ρ ≈ -v²/(8πG R²) */
+    -v^2/(8*%pi*G*R^2)
+);
+print("");
+printf(true, "3.2 必要な負のエネルギー密度:~%");
+printf(true, "  半径 R = 10m のワープバブル:~%");
+for v_frac in [0.1, 0.5, 1.0, 2.0] do (
+    rho_val: float(rho_alcubiere(v_frac, 10.0)),
+    printf(true, "  v = ~f c: ρ ≈ ~e J/m³~%", v_frac, rho_val)
+);
+/* ---------- 4. カシミール効果との比較 ---------- */
+print("");
+print("=================================================");
+print("4. カシミール効果との比較");
+print("=================================================");
+/* カシミールエネルギー密度 */
+rho_casimir(d) := -%pi^2 * hbar * c / (240 * d^4);
+print("");
+printf(true, "4.1 カシミール効果のエネルギー密度:~%");
+for d in [1e-9, 1e-8, 1e-7, 1e-6] do (  /* 平板間隔 [m] */
+    rho_cas: float(rho_casimir(d)),
+    printf(true, "  間隔 d = ~e m: ρ_casimir = ~e J/m³~%", d, rho_cas)
+);
+/* アルクビエレ駆動に必要な間隔 */
+d_required_alcubiere(v_frac, R) := block(
+    [rho_needed],
+    rho_needed: abs(rho_alcubiere(v_frac, R)),
+    float((%pi^2 * hbar * c / (240 * rho_needed))^(1/4))
+);
+print("");
+printf(true, "4.2 アルクビエレ駆動に必要なカシミール間隔 (R=10m):~%");
+for v_frac in [0.1, 0.5, 1.0] do (
+    d_req: d_required_alcubiere(v_frac, 10.0),
+    printf(true, "  v = ~f c: 必要な間隔 d = ~e m (~f nm)~%", 
+        v_frac, d_req, d_req*1e9)
+);
+/* ---------- 5. 現実的な制約 ---------- */
+print("");
+print("=================================================");
+print("5. 現実的な制約と改良案");
+print("=================================================");
+/* 5.1 改良されたアルクビエレ計量 (Van Den Broeck, 1999) */
+/* 微小ワープバブル: 必要な負のエネルギーを大幅に削減 */
+rho_van_den_broeck(M, v_frac, R) := block(
+    [v],
+    v: v_frac * c,
+    /* 改良版: ρ ≈ -M v²/(4π R³) */
+    -M * v^2/(4*%pi*R^3)
+);
+print("");
+printf(true, "5.1 Van Den Broeckの改良案 (微小ワープバブル):~%");
+printf(true, "  半径 R = 1m の微小バブル:~%");
+for v_frac in [0.1, 0.5, 1.0] do (
+    rho_vdb: float(rho_van_den_broeck(M_ship, v_frac, 1.0)),
+    printf(true, "  v = ~f c: ρ ≈ ~e J/m³~%", v_frac, rho_vdb)
+);
+/* 5.2 必要な総負のエネルギーの比較 */
+E_total_alcubiere(v_frac, R) := block(
+    [V, rho],
+    V: (4/3)*%pi*R^3,  /* 球の体積 */
+    rho: rho_alcubiere(v_frac, R),
+    rho * V
+);
+E_total_vdb(v_frac, R) := block(
+    [V, rho],
+    V: (4/3)*%pi*R^3,
+    rho: rho_van_den_broeck(M_ship, v_frac, R),
+    rho * V
+);
+print("");
+printf(true, "5.2 必要な総負のエネルギーの比較 (v=1c):~%");
+printf(true, "  アルクビエレ (R=10m): E ≈ ~e J~%", float(E_total_alcubiere(1.0, 10.0)));
+printf(true, "  Van Den Broeck (R=1m): E ≈ ~e J~%", float(E_total_vdb(1.0, 1.0)));
+printf(true, "  比率: ~e~%", float(E_total_vdb(1.0, 1.0)/E_total_alcubiere(1.0, 10.0)));
+/* ---------- 6. グラフ描画 ---------- */
+print("");
+print("=================================================");
+print("6. グラフ描画");
+print("=================================================");
+/* 6.1 速度 vs 必要なエネルギー密度 */
+print("");
+print("グラフ1: 速度 vs 必要なエネルギー密度 (R=10m)");
+v_plot: makelist(0.1 + 1.9*i/20, i, 0, 20);  /* 0.1c から 2.0c */
+rho_plot_alc: map(lambda([v], rho_alcubiere(v, 10.0)), v_plot);
+rho_plot_vdb: map(lambda([v], rho_van_den_broeck(M_ship, v, 1.0)), v_plot);
+/* アルクビエレ計量 */
+set_plot_option([plot_format, gnuplot]);
+plot2d([discrete, v_plot, abs(rho_plot_alc)],
+    [xlabel, "ワープ速度 (c単位)"],
+    [ylabel, "|エネルギー密度| (J/m³)"],
+    [title, "ZS-001: アルクビエレ駆動のエネルギー密度"],
+    [logy, true]);
+/* Van Den Broeck改良版 */
+plot2d([discrete, v_plot, abs(rho_plot_vdb)],
+    [xlabel, "ワープ速度 (c単位)"],
+    [ylabel, "|エネルギー密度| (J/m³)"],
+    [title, "ZS-001: Van Den Broeck改良版"],
+    [logy, true]);
+/* 6.2 半径 vs 必要なエネルギー密度 */
+print("");
+print("グラフ2: 半径 vs 必要なエネルギー密度 (v=1c)");
+R_plot: makelist(0.1 + 9.9*i/20, i, 0, 20);  /* 0.1m から 10m */
+rho_R_plot: map(lambda([R], rho_alcubiere(1.0, R)), R_plot);
+plot2d([discrete, R_plot, abs(rho_R_plot)],
+    [xlabel, "ワープバブル半径 R (m)"],
+    [ylabel, "|エネルギー密度| (J/m³)"],
+    [title, "ZS-001: 半径の影響 (v=1c)"],
+    [logx, true],
+    [logy, true]);
+/* 6.3 カシミール効果との比較 */
+print("");
+print("グラフ3: カシミール効果 vs アルクビエレ要件");
+d_plot: makelist(10^(-9 - 6*i/20), i, 0, 20);  /* 1pm から 1nm */
+rho_cas_plot: map(rho_casimir, d_plot);
+/* アルクビエレ要件 (v=1c, R=10m) */
+rho_alc_const: abs(rho_alcubiere(1.0, 10.0));
+alc_line: makelist(rho_alc_const, i, 1, length(d_plot));
+plot2d([[discrete, d_plot, abs(rho_cas_plot)], [discrete, d_plot, alc_line]],
+    [xlabel, "カシミール平板間隔 d (m)"],
+    [ylabel, "|エネルギー密度| (J/m³)"],
+    [title, "ZS-001: カシミール効果 vs アルクビエレ要件"],
+    [legend, "カシミール効果", "アルクビエレ要件 (v=1c, R=10m)"],
+    [logx, true],
+    [logy, true]);
+/* ---------- 7. 量子重力効果の評価 ---------- */
+print("");
+print("=================================================");
+print("7. 量子重力効果の評価");
+print("=================================================");
+/* プランクスケール */
+L_planck: sqrt(hbar*G/c^3);  /* プランク長さ [m] */
+T_planck: sqrt(hbar*G/c^5);  /* プランク時間 [s] */
+M_planck: sqrt(hbar*c/G);    /* プランク質量 [kg] */
+E_planck: M_planck * c^2;    /* プランクエネルギー [J] */
+
+print("");
+printf(true, "7.1 プランクスケール:~%");
+printf(true, "  プランク長さ: L_p = ~e m~%", float(L_planck));
+printf(true, "  プランク時間: T_p = ~e s~%", float(T_planck));
+printf(true, "  プランク質量: M_p = ~e kg~%", float(M_planck));
+printf(true, "  プランクエネルギー: E_p = ~e J~%", float(E_planck));
+/* 量子重力が無視できるスケール */
+/* 曲率スケールがプランク長さより十分大きい場合 */
+quantum_gravity_scale(R, v) := block(
+    [curvature_scale],
+    /* 曲率スケールの簡易推定: R_curv ≈ R/v */
+    curvature_scale: R / v,
+    curvature_scale / L_planck
+);
+print("");
+printf(true, "7.2 量子重力効果の無視可能性 (R=10m):~%");
+for v_frac in [0.1, 1.0, 10.0] do (
+    qg_ratio: float(quantum_gravity_scale(10.0, v_frac)),
+    if qg_ratio > 100 then status: "無視可能"
+    else if qg_ratio > 10 then status: "ほぼ無視可能"
+    else if qg_ratio > 1 then status: "境界領域"
+    else status: "量子重力効果重要",
+    printf(true, "  v = ~f c: 曲率/プランク長さ = ~f → ~a~%", 
+        v_frac, qg_ratio, status)
+);
+/* ---------- 8. ファイル出力 ---------- */
+print("");
+print("=================================================");
+print("8. 結果の保存");
+print("=================================================");
+with_stdout("ZS001_energy_requirements.txt",
+    printf(true, "v_fraction,R_m,rho_alcubiere_Jm3,rho_vdb_Jm3,d_required_m,quantum_gravity_ratio~%"),
+    
+    for v_frac in [0.1, 0.5, 1.0, 2.0, 5.0] do (
+        for R in [1.0, 10.0, 100.0] do (
+            rho_alc: float(rho_alcubiere(v_frac, R)),
+            rho_vdb: float(rho_van_den_broeck(M_ship, v_frac, R)),
+            d_req: d_required_alcubiere(v_frac, R),
+            qg_ratio: float(quantum_gravity_scale(R, v_frac)),
+            
+            printf(true, "~f,~f,~e,~e,~e,~f~%", 
+                v_frac, R, rho_alc, rho_vdb, d_req, qg_ratio)
+        )
+    )
+);
+print("✅ 計算結果を ZS001_energy_requirements.txt に保存しました");
+/* ---------- 9. まとめと結論 ---------- */
+print("");
+print("=================================================");
+print("✅ ZS‑001 エネルギー密度計算 完了");
+print("=================================================");
+print("");
+print("主要な結果:");
+print("  1. アルクビエレ駆動に必要な負のエネルギー密度を定量化");
+print("  2. カシミール効果による実現可能性を評価");
+print("  3. Van Den Broeckの改良案でエネルギー要件を大幅削減");
+print("  4. 量子重力効果が無視できるスケールを特定");
+print("");
+print("重要な発見:");
+print("  1. 光速ワープ(v=1c)には極めて高いエネルギー密度が必要");
+print("  2. カシミール効果ではピコメートル以下の間隔が必要");
+print("  3. 微小ワープバブル(R≈1m)が現実的");
+print("  4. 低速ワープ(v<0.1c)なら近未来技術で可能か");
+print("");
+print("生成されたファイル:");
+print("  1. ZS001_energy_requirements.txt - 詳細計算データ");
+print("");
+print("表示されたグラフ:");
+print("  1. 速度 vs エネルギー密度");
+print("  2. 半径 vs エネルギー密度");
+print("  3. カシミール効果との比較");
+print("");
+print("次のステップ: ZS-002 (因果律違反の回避メカニズム)");
+print("=================================================");
+

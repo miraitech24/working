@@ -1,0 +1,27 @@
+/* #4001: Multiverse Puncture Scaling - GUI Window Display */
+load("numericalio")$
+
+/* 1. スケーリング定義 */
+rho_base : -1.8e43$ /* #3001で得られた基準密度 */
+L_0 : 4.22$        /* プロキシマ距離 */
+rho_scaling(L) := rho_base * (1 + log(L/L_0))$
+
+/* 2. シミュレーション数値確認 */
+L_list : [10, 100, 1000, 10000, 100000]$
+energy_load : map(lambda([x], float(abs(rho_scaling(x)))), L_list)$
+print("Distance (ly):", L_list)$
+print("Energy Load (abs(rho)):", energy_load)$
+
+/* 3. グラフ作成 (別ウィンドウ表示) */
+/* オプションから png_file を削除すると、自動的に GUI ウィンドウが開きます */
+plot2d(abs(rho_scaling(dist)), [dist, 4.22, 100000],
+    [xlabel, "Puncture Distance (Light Years)"],
+    [ylabel, "Required Negative Energy Density (abs(rho))"],
+    [logy], /* Y軸対数スケール */
+    [title, "Task #4001: Galactic Scale Multiverse Puncture Scaling"],
+    [style, [lines, 3, 5]],
+    /* Ubuntuでウィンドウがすぐに閉じないようにするための設定 */
+    [gnuplot_preamble, "set mouse; pause mouse close;"]
+)$
+
+print("Graph window closed. Process complete.")$

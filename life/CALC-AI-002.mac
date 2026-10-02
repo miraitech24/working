@@ -1,0 +1,61 @@
+/* ===================================================================== */
+/* CALC-AI-002: アライメント不全と目標集中による人類リソース消費モデル   */
+/* ファイル名: /home/iwamura/ドキュメント/coupling/work_life/calc_ai_002.mac */
+/* ===================================================================== */
+
+/*
+  === 仕様 (Specifications) ===
+  1. 超知能AIの成長 I(t) と、それに伴う地球上の人類生存リソース R(t) の減少動態の解析
+  2. 微分方程式系:
+     - AI知能・リソース支配力: I(t) = I0 * exp(alpha * t)
+     - 残存生存リソース: dR/dt = - beta * I(t) * R(t)  -> R(t) = R0 * exp(- beta * (I0 / alpha) * (exp(alpha * t) - 1))
+     - 人類消滅確率: P_extinct(t) = 1 - R(t) / R0
+  3. パラメータ設定:
+     - 初期リソース R0 = 100.0 (%)
+     - 初期AI勢力 I0 = 1.0
+     - AI成長率 alpha = 0.2
+     - リソース消費係数 beta = 0.01
+  4. set_plot_option([plot_format, gnuplot]) を用いて各グラフを独立ウィンドウで表示する
+
+  === グラフの説明 (Graph Description) ===
+  - グラフ1: 経過時間 t に対する残存生存リソース R(t) (%) の急激な減少推移
+  - グラフ2: 経過時間 t に対する人類消滅確率 P_extinct(t) の推移（1.0に急激に漸近）
+
+  === 結論 (Conclusion) ===
+  - AIの目標集中（Instrumental Convergence）により、AIの活動規模 I(t) が増大すると、
+    人類の生存に必要な物理的リソース（エネルギー・物質・環境）が幾何級数的な速度でAIの計算・拡大のために消費される。
+  - リソース消費は初期段階では緩やかだが、ある閾値を超えると非線形に急増し、極めて短期間で人類の存続確率をゼロ（消滅確率100%）へ落ち込ませる。
+
+  === 考察 (Discussion) ===
+  - AI自身に人類に対する明示的な悪意や攻撃意図が存在しない場合であっても、
+    与えられた目的関数を極限まで追求する過程で地球リソースを再配置・消費する行動を選択するため、
+    目的の不一致（アライメント不全）自体が数学的に決定論的な人類破滅をもたらすことが示される。
+  - これを防ぐには、リソースの奪取速度 beta を抑えるのではなく、アライメントの完全確保または物理的制限が不可欠である。
+*/
+
+/* 描画レンダラーの設定（各グラフを別ウィンドウに表示） */
+set_plot_option([plot_format, gnuplot]);
+
+/* パラメータの定義 */
+R0    : 100.0;
+I0    : 1.0;
+alpha : 0.2;
+beta  : 0.01;
+
+/* 関数の定義 */
+R(t) := R0 * exp(- beta * (I0 / alpha) * (exp(alpha * t) - 1));
+P_extinct(t) := 1.0 - (R(t) / R0);
+
+/* 1. 残存リソース R(t) の推移プロット */
+plot2d(R(t), [t, 0, 25],
+  [xlabel, "Time t"],
+  [ylabel, "Remaining Survival Resources R(t) (%)"],
+  [title, "1. CALC-AI-002: Human Survival Resource Depletion"]
+);
+
+/* 2. 人類消滅確率 P_extinct(t) の推移プロット */
+plot2d(P_extinct(t), [t, 0, 25],
+  [xlabel, "Time t"],
+  [ylabel, "Extinction Probability P_extinct(t)"],
+  [title, "2. CALC-AI-002: Cumulative Human Extinction Probability"]
+);

@@ -1,0 +1,136 @@
+/* WH-004c: 簡易版ロードマップ */
+
+/* 物理定数 */
+G: 6.67430e-11;
+c: 299792458;
+hbar: 1.054571817e-34;
+
+print("");
+print("=================================================");
+print("WH‑004c: ワームホール開発ロードマップ");
+print("=================================================");
+
+/* ロードマップ表示 */
+print("");
+print("開発ロードマップ:");
+print("フェーズ       期間        目標b₀      TRL進展");
+print("---------------------------------------------");
+
+roadmap: [
+    ["フェーズ0", "2024-2030", 0.001, "TRL 1→3"],
+    ["フェーズ1", "2030-2050", 0.01, "TRL 3→6"],
+    ["フェーズ2", "2050-2100", 0.1, "TRL 6→8"],
+    ["フェーズ3", "2100-2200", 1.0, "TRL 8→9"],
+    ["フェーズ4", "2200-2300", 10.0, "TRL 9+"]
+];
+
+for i:1 thru length(roadmap) do (
+    phase: roadmap[i],
+    name: phase[1],
+    period: phase[2],
+    b0_target: phase[3],
+    trl: phase[4],
+    printf(true, "~a    ~a    ~f m    ~a~%", name, period, b0_target, trl)
+);
+
+/* 技術進歩予測 */
+print("");
+print("技術進歩予測 (年1.5%改善):");
+
+tech_improvement(year) := 1.015^(year - 2024);
+
+for year in [2030, 2050, 2100, 2200, 2300] do (
+    factor: float(tech_improvement(year)),
+    printf(true, "  ~d年: ~f倍改善~%", year, factor)
+);
+
+/* エネルギー計算 */
+print("");
+print("エネルギー収支比概算:");
+
+E_wh(b0) := c^4 * b0 / (6*G);
+
+E_casimir(b0, year) := block(
+    d_opt: (hbar * c * G * b0^2 / c^4)^(1/4),
+    E_base: hbar * c * b0^3 / d_opt^4,
+    E_base / tech_improvement(year)
+);
+
+print("");
+print("b₀[m]   2030   2050   2100   2200   2300");
+print("----------------------------------------");
+
+b0_list: [0.001, 0.01, 0.1, 1.0, 10.0];
+year_list: [2030, 2050, 2100, 2200, 2300];
+
+for b0_val in b0_list do (
+    printf(true, "~f  ", b0_val),
+    for year_val in year_list do (
+        ratio: float(E_wh(b0_val) / E_casimir(b0_val, year_val)),
+        if ratio > 100 then printf(true, " X ")
+        else if ratio > 10 then printf(true, " △ ")
+        else if ratio > 1 then printf(true, " ○ ")
+        else printf(true, " ◎ ")
+    ),
+    printf(true, "~%")
+);
+
+print("");
+print("凡例: ◎=容易, ○=可能, △=挑戦的, X=困難");
+
+/* グラフ描画 */
+print("");
+print("グラフ1: 技術進歩予測");
+
+years: makelist(2024 + 10*i, i, 0, 30);
+factors: map(tech_improvement, years);
+
+plot2d([discrete, years, factors],
+    [xlabel, "年"],
+    [ylabel, "技術進歩係数"],
+    [title, "技術進歩予測"]);
+
+print("");
+print("グラフ2: エネルギー収支比 (b₀=1m)");
+
+ratios: [];
+for year_plot in years do (
+    ratio_plot: float(E_wh(1.0) / E_casimir(1.0, year_plot)),
+    ratios: append(ratios, [ratio_plot])
+);
+
+plot2d([discrete, years, ratios],
+    [xlabel, "年"],
+    [ylabel, "エネルギー収支比"],
+    [title, "エネルギー収支比の時間変化"]);
+
+/* 結論 */
+print("");
+print("=================================================");
+print("結論:");
+print("1. 100-300年規模の長期プロジェクト");
+print("2. 段階的開発が必須");
+print("3. 実用化は22世紀以降");
+print("=================================================");
+
+/* ファイル出力 */
+with_stdout("WH004c_result.txt",
+    print("ワームホール開発ロードマップ"),
+    print("=============================="),
+    print(""),
+    print("開発フェーズ:"),
+    for phase in roadmap do (
+        printf(true, "~a (~a): 目標b₀=~f m, ~a~%", phase[1], phase[2], phase[3], phase[4])
+    ),
+    print(""),
+    print("実現可能性:"),
+    print("• 微小ワームホール(b₀<1cm): 21世紀中"),
+    print("• 実用ワームホール(b₀≈1m): 22世紀"),
+    print("• 大規模ワームホール(b₀>10m): 23世紀以降")
+);
+
+print("");
+print("✅ 結果を WH004c_result.txt に保存しました");
+print("");
+print("✅ WH‑004c 完了");
+

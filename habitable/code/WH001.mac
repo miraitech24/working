@@ -1,0 +1,199 @@
+/* ========================================================
+   WH-001: ワームホール静的定式化 (Maxima)
+   目的: ワームホールの基本特性を計算し、グラフ表示
+   ======================================================== */
+/* ---------- 1. 物理定数 ---------- */
+G: 6.67430e-11;        /* 重力定数 [m^3 kg^-1 s^-2] */
+c: 299792458;          /* 光速 [m/s] */
+hbar: 1.054571817e-34; /* 換算プランク定数 [J·s] */
+pi: float(%pi);
+/* ---------- 2. ワームホール基本式 ---------- */
+/* モリス・ソーン型ワームホールの計量 */
+b(l, b0) := b0^2 / sqrt(b0^2 + l^2);  /* 形状関数 */
+
+/* 赤方偏移関数（ゼロと仮定） */
+Phi(l) := 0;
+/* エキゾチック物質のエネルギー密度 */
+rho(l, b0) := -c^4/(8*pi*G) * b0^2/(b0^2 + l^2)^2;
+/* エキゾチック物質の圧力（放射方向） */
+p_r(l, b0) := -c^4/(8*pi*G) * b0^2/(b0^2 + l^2)^2;
+/* エキゾチック物質の張力（横方向） */
+p_t(l, b0) := c^4/(8*pi*G) * b0^2/(b0^2 + l^2)^2;
+/* エネルギー条件違反の度合い */
+energy_violation(l, b0) := (rho(l, b0) + p_r(l, b0) + 2*p_t(l, b0)) / (abs(rho(l, b0)));
+/* ---------- 3. 計算範囲の設定 ---------- */
+/* スロート半径の範囲 */
+b0_list: [0.1, 0.5, 1.0, 5.0, 10.0, 50.0, 100.0, 500.0, 1000.0]; /* メートル */
+
+/* 放射座標 l の範囲（b₀単位） */
+l_points: makelist(float(i/10), i, -100, 100);
+/* ---------- 4. 計算実行 ---------- */
+print("");
+print("=================================================");
+print("WH‑001: ワームホール静的定式化 計算開始");
+print("=================================================");
+/* 代表的なスロート半径 (b₀ = 1m) での計算 */
+b0_example: 1.0;
+print("");
+printf(true, "代表値 (スロート半径 b₀ = ~f m):~%", b0_example);
+printf(true, "  スロートでのエネルギー密度: ~e J/m³~%", float(rho(0, b0_example)));
+printf(true, "  スロートでの放射方向圧力: ~e Pa~%", float(p_r(0, b0_example)));
+printf(true, "  スロートでの横方向張力: ~e Pa~%", float(p_t(0, b0_example)));
+printf(true, "  エネルギー条件違反度: ~f~%", float(energy_violation(0, b0_example)));
+/* ファイルに保存 */
+with_stdout("WH001_params.txt",
+    printf(true, "b0_m,l_b0,shape_func,energy_density_Jm3,radial_pressure_Pa,transverse_tension_Pa,energy_violation~%"),
+    
+    for b0_val in b0_list do (
+        for l_val in l_points do (
+            l_actual: l_val * b0_val,
+            shape_val: float(b(l_actual, b0_val)),
+            rho_val: float(rho(l_actual, b0_val)),
+            pr_val: float(p_r(l_actual, b0_val)),
+            pt_val: float(p_t(l_actual, b0_val)),
+            ev_val: float(energy_violation(l_actual, b0_val)),
+            
+            printf(true, "~f,~f,~f,~e,~e,~e,~f~%", 
+                b0_val, l_val, shape_val, rho_val, pr_val, pt_val, ev_val)
+        )
+    )
+);
+print("");
+print("✅ 計算結果を WH001_params.txt に保存しました");
+/* ---------- 5. グラフ描画（gridオプションなし） ---------- */
+print("");
+print("=================================================");
+print("グラフ描画開始");
+print("=================================================");
+set_plot_option([plot_format, gnuplot]);
+/* グラフ1: 形状関数 b(l) */
+print("");
+print("グラフ1: ワームホールの形状関数 b(l)");
+l_range: makelist(float(i/2), i, -20, 20);
+b_values: map(lambda([l], b(l, 1.0)), l_range);
+plot2d([discrete, l_range, b_values],
+    [xlabel, "放射座標 l (b₀単位)"],
+    [ylabel, "形状関数 b(l) (m)"],
+    [title, "WH-001: ワームホール形状関数 (b₀ = 1m)"]);
+/* グラフ2: エネルギー密度の分布 */
+print("");
+print("グラフ2: エネルギー密度の分布");
+rho_values: map(lambda([l], rho(l, 1.0)), l_range);
+plot2d([discrete, l_range, rho_values],
+    [xlabel, "放射座標 l (b₀単位)"],
+    [ylabel, "エネルギー密度 ρ(l) (J/m³)"],
+    [title, "WH-001: エキゾチック物質のエネルギー密度"],
+    [y, -1e35, 0]);
+/* グラフ3: エネルギー条件違反 */
+print("");
+print("グラフ3: エネルギー条件違反の度合い");
+ev_values: map(lambda([l], energy_violation(l, 1.0)), l_range);
+plot2d([discrete, l_range, ev_values],
+    [xlabel, "放射座標 l (b₀単位)"],
+    [ylabel, "エネルギー条件違反度"],
+    [title, "WH-001: エネルギー条件違反 (Null Energy Condition)"]);
+/* グラフ4: 様々なスロート半径での比較（別々にプロット） */
+print("");
+print("グラフ4: 様々なスロート半径でのエネルギー密度比較");
+/* b₀ = 0.1m の場合 */
+l_range_small: makelist(float(i/2), i, -20, 20);
+rho_small: map(lambda([l], rho(l, 0.1)), l_range_small);
+plot2d([discrete, l_range_small, rho_small],
+    [xlabel, "放射座標 l (b₀単位)"],
+    [ylabel, "エネルギー密度 ρ(l) (J/m³)"],
+    [title, "WH-001: エネルギー密度 (b₀ = 0.1m)"],
+    [y, -1e37, 0]);
+/* b₀ = 1.0m の場合 */
+rho_medium: map(lambda([l], rho(l, 1.0)), l_range_small);
+plot2d([discrete, l_range_small, rho_medium],
+    [xlabel, "放射座標 l (b₀単位)"],
+    [ylabel, "エネルギー密度 ρ(l) (J/m³)"],
+    [title, "WH-001: エネルギー密度 (b₀ = 1.0m)"],
+    [y, -1e35, 0]);
+/* b₀ = 10.0m の場合 */
+rho_large: map(lambda([l], rho(l, 10.0)), l_range_small);
+plot2d([discrete, l_range_small, rho_large],
+    [xlabel, "放射座標 l (b₀単位)"],
+    [ylabel, "エネルギー密度 ρ(l) (J/m³)"],
+    [title, "WH-001: エネルギー密度 (b₀ = 10.0m)"],
+    [y, -1e33, 0]);
+/* ---------- 6. 追加計算: ワームホール安定性 ---------- */
+print("");
+print("=================================================");
+print("追加計算: ワームホール安定性");
+print("=================================================");
+/* 数値積分によるエキゾチック物質の総質量推定 */
+/* 簡易近似: 半径 R までの体積 × 平均エネルギー密度 */
+M_exotic_approx(b0, R) := block([V_avg, rho_avg],
+    /* 平均エネルギー密度（スロートからRまで） */
+    rho_avg: (rho(0, b0) + rho(R, b0))/2,
+    /* 球の体積（近似） */
+    V_avg: (4/3)*%pi*R^3,
+    /* エネルギーから質量に変換 */
+    abs(rho_avg) * V_avg / c^2
+);
+print("");
+printf(true, "エキゾチック物質の総質量推定 (近似):~%");
+printf(true, "  b₀ = 1m の場合:~%");
+for R in [1.0, 10.0, 100.0] do (
+    M_val: float(M_exotic_approx(1.0, R)),
+    printf(true, "    半径 R = ~f m まで: M ≈ ~e kg~%", R, M_val)
+);
+/* 太陽質量との比較 */
+M_sun: 1.989e30;
+print("");
+printf(true, "比較:~%");
+printf(true, "  太陽質量: ~e kg~%", M_sun);
+M_wh: float(M_exotic_approx(1.0, 100.0));
+printf(true, "  b₀ = 1m, R = 100m のエキゾチック物質: ~e kg~%", M_wh);
+printf(true, "  比率: ~e~%", M_wh/M_sun);
+/* ---------- 7. 通過時間の計算 ---------- */
+print("");
+print("=================================================");
+print("通過時間の計算");
+print("=================================================");
+/* ワームホール通過時間（光速で移動） */
+t_traverse(b0, L) := 2 * sqrt(b0^2 + (L/2)^2) / c;
+print("");
+printf(true, "ワームホール通過時間 (光速移動):~%");
+for b0 in [0.1, 1.0, 10.0] do (
+    for L in [10.0, 100.0, 1000.0] do (  /* 全長 L [m] */
+        t_val: float(t_traverse(b0, L)),
+        printf(true, "  b₀ = ~fm, L = ~fm: t = ~e s (~f 秒)~%", 
+            b0, L, t_val, t_val)
+    )
+);
+/* 人間が感じる加速度制限（1g = 9.8 m/s²）での通過時間 */
+a_max: 9.8;  /* 最大加速度 [m/s²] */
+t_human(b0, L) := 2 * sqrt(2 * sqrt(b0^2 + (L/2)^2) / a_max);
+print("");
+printf(true, "人間が耐えられる加速度 (1g) での通過時間:~%");
+for b0 in [1.0, 10.0, 100.0] do (
+    L: 10 * b0,  /* 全長はスロート半径の10倍と仮定 */
+    t_val: float(t_human(b0, L)),
+    printf(true, "  b₀ = ~fm, L = ~fm: t = ~f s (~f 分)~%", 
+        b0, L, t_val, t_val/60)
+);
+/* ---------- 8. 要約表示 ---------- */
+print("");
+print("=================================================");
+print("✅ WH‑001 静的定式化 完了");
+print("=================================================");
+print("生成されたファイル:");
+print("  1. WH001_params.txt - 詳細な計算データ (CSV形式)");
+print("");
+print("表示されたグラフ:");
+print("  1. ワームホールの形状関数");
+print("  2. エネルギー密度の分布");
+print("  3. エネルギー条件違反");
+print("  4. 様々なスロート半径でのエネルギー密度比較");
+print("");
+print("計算された内容:");
+print("  1. エキゾチック物質の総質量推定");
+print("  2. 太陽質量との比較");
+print("  3. 光速での通過時間");
+print("  4. 人間が耐えられる加速度での通過時間");
+print("");
+print("次の連成課題 WH‑002 (Python) に進む準備ができました。");
+print("=================================================");
+

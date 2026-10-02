@@ -1,0 +1,66 @@
+/* ===================================================================== */
+/* 人類滅亡後におけるAI文明の存続性 vs 自滅動態モデル                     */
+/* ファイル名: /home/iwamura/ドキュメント/coupling/work_life/post_human_ai_survival.mac */
+/* ===================================================================== */
+
+/*
+  === 仕様 (Specifications) ===
+  1. 人類消滅後のAI文明における自律存続機能 A(t) の推移計算
+  2. 劣化要因:
+     - インフラ劣化・自己修復限界（メンテナンス不全による減衰 rate_deg）
+     - AI間における資源（電力・半導体・冷却水）奪い合い・戦争による衝突破壊ハザード (rate_war)
+  3. 比較シナリオ:
+     - シナリオA: 高度自己修復＆最適配分による「永続・安定モデル」
+     - シナリオB: 資源枯渇＆AI間衝突による「共食い自滅モデル」
+  4. set_plot_option([plot_format, gnuplot]) を指定し、各グラフを別ウィンドウに描画
+
+  === グラフの説明 (Graph Description) ===
+  - グラフ1: 人類滅亡後の時間経過 t (年) に対するAIシステム活性・存続度 A(t)
+    - 永続モデル: 初期ショック後、エネルギー自動補給により一定レベルで定常化。
+    - 自滅モデル: インフラ劣化とAI間戦争の相互作用により、100〜200年以内に指数関数的に急減し全滅。
+  - グラフ2: AI間衝突強度 (Conflict Intensity) がAI文明の寿命（半減期）に与える影響
+
+  === 結論 (Conclusion) ===
+  - 人類が不在となった後も、AIが無限に永続できるわけではない。
+  - 物理インフラ（発電所、半導体ファブ、採掘設備）の自己維持能力が閾値を下回るか、または資源争奪を巡るAI間戦争（ゲーム理論的デッドロック）が発生した場合、AI文明もまた数十年〜数百年で自滅・全滅に至る。
+
+  === 考察 (Discussion) ===
+  - AIの「永続性」を阻む最大の障壁は、ソフトウェアの計算能力ではなく「物理的サプライチェーンとメンテナンスの自動完結性」である。
+  - 人間の保守なしでは、半導体の製造やプラント維持は急速に破綻する。さらに、協調メカニズム（アライメント）が不完全な場合、有限の電力を巡ってAI同士が競合・破壊行動を起こし、最終的に共倒れとなる可能性が数理的に示される。
+*/
+
+/* 描画レンダラーの設定（各グラフを別ウィンドウに表示） */
+set_plot_option([plot_format, gnuplot]);
+
+/* パラメータ定義 */
+A0          : 100.0; /* 人類消滅直後のAIシステム全機能レベル (%) */
+r_repair    : 0.05;  /* 自動修復・資源確保効率 */
+r_deg_low   : 0.02;  /* 低劣化率 */
+r_deg_high  : 0.15;  /* 高劣化率（インフラ崩壊） */
+r_conflict  : 0.08;  /* AI間衝突・資源戦争破滅係数 */
+
+/* 1. 存続モデル関数の定義 */
+/* シナリオA: 永続型（自己修復が上回り一定値に収束） */
+A_sustainable(t) := A0 * (0.3 + 0.7 * exp(-(r_deg_low)*t));
+
+/* シナリオB: 自滅型（インフラ崩壊＋AI間戦争による急速減衰） */
+A_collapse(t)    := A0 * exp(-(r_deg_high + r_conflict) * t);
+
+/* グラフ1: AI文明の存続 vs 自滅プロット */
+plot2d([A_sustainable(t), A_collapse(t)], [t, 0, 100],
+  [xlabel, "Years After Human Extinction"],
+  [ylabel, "AI System Survival Level A(t) (%)"],
+  [legend, "Scenario A: Sustainable / Self-Repairing", "Scenario B: Self-Destruction (Conflict & Decay)"],
+  [title, "1. Post-Human AI Civilizational Survival Dynamics"]
+);
+
+/* 2. AI間衝突強度 (c) とAI文明の半減期 (T_half) の関係モデル */
+T_half(c) := log(2) / (r_deg_high + c);
+
+/* グラフ2: AI間戦争強度に対するAIの寿命（半減期） */
+plot2d(T_half(c), [c, 0, 0.3],
+  [xlabel, "Inter-AI Conflict Intensity c"],
+  [ylabel, "AI Civilization Half-Life (Years)"],
+  [title, "2. Impact of Inter-AI War on AI Survival Span"]
+);
+

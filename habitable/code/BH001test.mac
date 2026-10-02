@@ -1,0 +1,63 @@
+/* ========================================================
+   BH-001: ブラックホール静的定式化 (Maxima) - テスト版
+   目的: plot2dでwxMaximaウィンドウにグラフを表示するテスト
+   ======================================================== */
+
+/* ---------- 1. 物理定数 ---------- */
+G: 6.67430e-11;        /* 重力定数 [m^3 kg^-1 s^-2] */
+c: 299792458;          /* 光速 [m/s] */
+pi: float(%pi);
+
+/* ---------- 2. ブラックホール基本式 ---------- */
+Rs(M) := 2*G*M/c^2;    /* シュワルツシルト半径 */
+
+/* ---------- 3. テストデータ生成 ---------- */
+/* 質量範囲: 1e12 kg から 1e30 kg */
+mass_test: makelist(10^i, i, 12, 30, 2);
+radius_test: map(Rs, mass_test);
+
+/* データポイントを表示 */
+print("テストデータ:");
+for i:1 thru length(mass_test) do (
+    printf(true, "  M = ~e kg, Rs = ~e m~%", mass_test[i], radius_test[i])
+);
+
+/* ---------- 4. plot2dでグラフ表示テスト ---------- */
+print("");
+print("=================================================");
+print("plot2d グラフ表示テスト開始...");
+print("=================================================");
+
+/* テスト1: シンプルなplot2d */
+print("");
+print("テスト1: シンプルなplot2d");
+plot2d([discrete, mass_test, radius_test],
+    [xlabel, "Mass (kg)"],
+    [ylabel, "Schwarzschild radius (m)"],
+    [title, "BH-001: Mass vs. Radius (Test)"]);
+
+/* テスト2: 対数軸 */
+print("");
+print("テスト2: 対数軸で表示");
+plot2d([discrete, mass_test, radius_test],
+    [xlabel, "Mass (kg)"],
+    [ylabel, "Schwarzschild radius (m)"],
+    [logx, true],
+    [logy, true],
+    [title, "BH-001: Mass vs. Radius (Log-Log)"]);
+
+/* テスト3: 関数プロット */
+print("");
+print("テスト3: 関数としてプロット");
+plot2d(Rs(x), [x, 1e12, 1e30],
+    [xlabel, "Mass (kg)"],
+    [ylabel, "Schwarzschild radius (m)"],
+    [logx, true],
+    [logy, true],
+    [title, "BH-001: Rs(M) function"]);
+
+print("");
+print("=================================================");
+print("テスト完了。wxMaximaウィンドウにグラフが表示されましたか？");
+print("=================================================");
+

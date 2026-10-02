@@ -1,0 +1,289 @@
+/* ========================================================
+   WH-004: エキゾチック物質生成のエネルギーコスト計算 (Maxima)
+   目的: 負のエネルギー密度生成の実現可能性とエネルギー収支を評価
+   ======================================================== */
+
+/* ---------- 1. 物理定数 ---------- */
+G: 6.67430e-11;        /* 重力定数 [m^3 kg^-1 s^-2] */
+c: 299792458;          /* 光速 [m/s] */
+hbar: 1.054571817e-34; /* 換算プランク定数 [J·s] */
+kB: 1.380649e-23;      /* ボルツマン定数 [J/K] */
+epsilon0: 8.854187817e-12; /* 真空の誘電率 [F/m] */
+pi: float(%pi);
+
+/* ---------- 2. ワームホールのエネルギー要件 ---------- */
+print("");
+print("=================================================");
+print("WH‑004: エキゾチック物質生成のエネルギーコスト計算");
+print("=================================================");
+
+/* 2.1 モリス・ソーン型ワームホールのエネルギー密度 */
+rho_wh(l, b0) := -c^4/(8*pi*G) * b0^2/(b0^2 + l^2)^2;
+
+/* スロートでの最大エネルギー密度（絶対値） */
+rho_max(b0) := c^4/(8*pi*G * b0^2);
+
+print("");
+printf(true, "2.1 ワームホールのエネルギー密度要件:~%");
+for b0 in [0.1, 1.0, 10.0, 100.0] do (
+    rho_val: float(rho_max(b0)),
+    printf(true, "  スロート半径 b₀ = ~f m: |ρ| = ~e J/m³~%", b0, rho_val)
+);
+
+/* ---------- 3. 量子真空からの負のエネルギー生成 ---------- */
+print("");
+print("=================================================");
+print("3. 量子真空からの負のエネルギー生成");
+print("=================================================");
+
+/* 3.1 カシミール効果による負のエネルギー密度 */
+/* 平行平板間のカシミールエネルギー密度 */
+rho_casimir(d) := -%pi^2 * hbar * c / (240 * d^4);
+
+print("");
+printf(true, "3.1 カシミール効果による負のエネルギー密度:~%");
+for d in [1e-9, 1e-8, 1e-7, 1e-6] do (  /* 平板間距離 [m] */
+    rho_cas: float(rho_casimir(d)),
+    printf(true, "  間隔 d = ~e m: ρ_casimir = ~e J/m³~%", d, rho_cas)
+);
+
+/* 3.2 必要な平板間隔の計算 */
+/* ワームホールに必要なエネルギー密度を達成するための間隔 */
+d_required(b0) := block(
+    [rho_needed],
+    rho_needed: rho_max(b0),
+    /* |ρ_casimir| = |ρ_wh| となる d を求める */
+    float((%pi^2 * hbar * c / (240 * abs(rho_needed)))^(1/4))
+);
+
+print("");
+printf(true, "3.2 ワームホール生成に必要なカシミール平板間隔:~%");
+for b0 in [0.1, 1.0, 10.0, 100.0] do (
+    d_req: d_required(b0),
+    printf(true, "  b₀ = ~f m: 必要な間隔 d = ~e m (~f nm)~%", 
+        b0, d_req, d_req*1e9)
+);
+
+/* ---------- 4. エネルギー収支分析 ---------- */
+print("");
+print("=================================================");
+print("4. エネルギー収支分析");
+print("=================================================");
+
+/* 4.1 ワームホールの総負のエネルギー */
+/* 半径 R までの体積積分（近似） */
+E_total_wh(b0, R) := block(
+    [V, rho_avg],
+    /* 球の体積（近似） */
+    V: (4/3)*%pi*R^3,
+    /* 平均エネルギー密度（スロートからRまで線形減少と仮定） */
+    rho_avg: (rho_max(b0) + rho_wh(R, b0))/2,
+    abs(rho_avg) * V
+);
+
+/* 4.2 カシミール装置の総エネルギー */
+/* 平板の面積 A、間隔 d の装置 */
+E_total_casimir(A, d, thickness) := block(
+    [V_casimir, E_setup],
+    /* カシミールエネルギー */
+    V_casimir: A * d,
+    E_casimir: abs(rho_casimir(d)) * V_casimir,
+    
+    /* 装置の静止エネルギー（平板の質量） */
+    /* 材料: 金（密度 19300 kg/m³） */
+    rho_gold: 19300,
+    V_plate: A * thickness,
+    m_plate: 2 * rho_gold * V_plate,  /* 2枚の平板 */
+    E_plate: m_plate * c^2,
+    
+    [E_casimir, E_plate]
+);
+
+print("");
+printf(true, "4.1 エネルギー収支比較 (b₀ = 1m, R = 10m):~%");
+b0_example: 1.0;
+R_example: 10.0;
+E_wh: float(E_total_wh(b0_example, R_example));
+printf(true, "  ワームホールの総負のエネルギー: ~e J~%", E_wh);
+
+print("");
+printf(true, "4.2 カシミール装置のエネルギー (A = 1m², d = 1nm):~%");
+A_example: 1.0;      /* 1 m² */
+d_example: 1e-9;     /* 1 nm */
+thickness_example: 1e-3;  /* 1 mm */
+[E_cas, E_plate]: E_total_casimir(A_example, d_example, thickness_example);
+printf(true, "  カシミールエネルギー: ~e J~%", E_cas);
+printf(true, "  平板の静止エネルギー: ~e J~%", E_plate);
+printf(true, "  合計投入エネルギー: ~e J~%", E_cas + E_plate);
+
+/* エネルギー利得（負の値が望ましい） */
+energy_gain: E_wh - (E_cas + E_plate);
+printf(true, "  エネルギー利得: ~e J (~,2f%%)~%", 
+    energy_gain, 100*energy_gain/E_wh);
+
+/* ---------- 5. グラフ描画 ---------- */
+print("");
+print("=================================================");
+print("5. グラフ描画");
+print("=================================================");
+
+/* 5.1 スロート半径 vs 必要なエネルギー密度 */
+print("");
+print("グラフ1: スロート半径 vs 必要なエネルギー密度");
+
+b0_range: makelist(10^(-1 + 3*i/20), i, 0, 20);  /* 0.1m から 1000m */
+rho_needed_range: map(rho_max, b0_range);
+
+plot2d([discrete, b0_range, rho_needed_range],
+    [xlabel, "スロート半径 b₀ (m)"],
+    [ylabel, "必要なエネルギー密度 |ρ| (J/m³)"],
+    [title, "WH-004: ワームホールのエネルギー密度要件"],
+    [logx, true],
+    [logy, true]);
+
+/* 5.2 カシミール間隔 vs 生成可能エネルギー密度 */
+print("");
+print("グラフ2: カシミール間隔 vs 生成可能エネルギー密度");
+
+d_range: makelist(10^(-9 - 6*i/20), i, 0, 20);  /* 1pm から 1nm */
+rho_casimir_range: map(rho_casimir, d_range);
+
+plot2d([discrete, d_range, abs(rho_casimir_range)],
+    [xlabel, "平板間隔 d (m)"],
+    [ylabel, "カシミールエネルギー密度 |ρ| (J/m³)"],
+    [title, "WH-004: カシミール効果のエネルギー密度"],
+    [logx, true],
+    [logy, true]);
+
+/* 5.3 エネルギー収支の比較 */
+print("");
+print("グラフ3: エネルギー収支比較");
+
+/* 様々なスロート半径でのエネルギー収支 */
+b0_energy_range: makelist(10^(-1 + 2*i/10), i, 0, 10);  /* 0.1m から 10m */
+energy_ratios: [];
+
+for b0_val in b0_energy_range do (
+    /* ワームホールエネルギー */
+    R_val: 10 * b0_val,  /* 半径はスロートの10倍と仮定 */
+    E_wh_val: float(E_total_wh(b0_val, R_val)),
+    
+    /* カシミールエネルギー（最適な間隔で） */
+    d_opt: d_required(b0_val),
+    A_opt: %pi * (10*b0_val)^2,  /* ワームホール断面積の10倍 */
+    [E_cas_opt, E_plate_opt]: E_total_casimir(A_opt, d_opt, 1e-3),
+    E_total_cas_opt: E_cas_opt + E_plate_opt,
+    
+    /* エネルギー比: ワームホール/カシミール */
+    ratio: E_wh_val / E_total_cas_opt,
+    energy_ratios: append(energy_ratios, [ratio])
+);
+
+plot2d([discrete, b0_energy_range, energy_ratios],
+    [xlabel, "スロート半径 b₀ (m)"],
+    [ylabel, "エネルギー比 (E_wh / E_casimir)"],
+    [title, "WH-004: エネルギー収支比"],
+    [logx, true],
+    [logy, true]);
+
+/* ---------- 6. 実現可能性評価 ---------- */
+print("");
+print("=================================================");
+print("6. 実現可能性評価");
+print("=================================================");
+
+/* 6.1 技術的課題 */
+print("");
+printf(true, "6.1 技術的課題:~%");
+printf(true, "  1. ナノメートル以下の精度での平板位置制御~%");
+printf(true, "  2. 表面粗さ: 原子レベルでの平滑性が必要~%");
+printf(true, "  3. 熱雑音: 極低温環境での動作が必須~%");
+printf(true, "  4. 量子ゆらぎ: ゼロ点エネルギーとの競合~%");
+
+/* 6.2 代替手法 */
+print("");
+printf(true, "6.2 負のエネルギー生成の代替手法:~%");
+printf(true, "  1. スクイーズド状態: 量子光学的手法~%");
+printf(true, "  2. 高速光学: 異常な分散関係の利用~%");
+printf(true, "  3. メタマテリアル: 人工的な負の屈折率~%");
+printf(true, "  4. 超伝導: マクロな量子効果~%");
+
+/* 6.3 エネルギー変換効率 */
+eta_quantum_vacuum: 1e-6;  /* 量子真空からのエネルギー抽出効率（推定） */
+eta_casimir: 0.01;         /* カシミール効果の実効効率 */
+
+print("");
+printf(true, "6.3 エネルギー変換効率（推定）:~%");
+printf(true, "  量子真空からの直接抽出: ~e~%", eta_quantum_vacuum);
+printf(true, "  カシミール効果利用: ~e~%", eta_casimir);
+
+/* ---------- 7. ファイル出力 ---------- */
+print("");
+print("=================================================");
+print("7. 結果の保存");
+print("=================================================");
+
+with_stdout("WH004_energy_cost.txt",
+    printf(true, "b0_m,rho_max_Jm3,d_required_m,E_wh_J,E_casimir_J,energy_ratio,feasibility~%"),
+    
+    for b0 in [0.1, 0.5, 1.0, 5.0, 10.0, 50.0, 100.0] do (
+        /* 必要なエネルギー密度 */
+        rho_needed: float(rho_max(b0)),
+        
+        /* 必要なカシミール間隔 */
+        d_req: d_required(b0),
+        
+        /* ワームホールエネルギー */
+        R: 10 * b0,
+        E_wh_val: float(E_total_wh(b0, R)),
+        
+        /* カシミールエネルギー */
+        A: %pi * (10*b0)^2,
+        [E_cas_val, E_plate_val]: E_total_casimir(A, d_req, 1e-3),
+        E_cas_total: E_cas_val + E_plate_val,
+        
+        /* エネルギー比 */
+        ratio: E_wh_val / E_cas_total,
+        
+        /* 実現可能性評価 */
+        feasibility: if ratio > 1 then "困難" 
+                    else if ratio > 0.1 then "挑戦的" 
+                    else if ratio > 0.01 then "可能性あり" 
+                    else "有望",
+        
+        printf(true, "~f,~e,~e,~e,~e,~f,~a~%", 
+            b0, rho_needed, d_req, E_wh_val, E_cas_total, ratio, feasibility)
+    )
+);
+
+print("✅ 計算結果を WH004_energy_cost.txt に保存しました");
+
+/* ---------- 8. まとめと結論 ---------- */
+print("");
+print("=================================================");
+print("✅ WH‑004 エネルギーコスト計算 完了");
+print("=================================================");
+print("");
+print("主要な結果:");
+print("  1. ワームホールに必要な負のエネルギー密度を定量化");
+print("  2. カシミール効果による生成可能性を評価");
+print("  3. エネルギー収支分析: ワームホール vs カシミール装置");
+print("  4. 実現可能性の定量的評価");
+print("");
+print("重要な発見:");
+print("  1. 小型ワームホールほど高いエネルギー密度が必要");
+print("  2. カシミール効果ではナノメートル以下の間隔が必要");
+print("  3. エネルギー収支は技術レベルに強く依存");
+print("  4. 現状技術では極めて挑戦的");
+print("");
+print("生成されたファイル:");
+print("  1. WH004_energy_cost.txt - 詳細計算データ");
+print("");
+print("表示されたグラフ:");
+print("  1. スロート半径 vs 必要なエネルギー密度");
+print("  2. カシミール間隔 vs 生成可能エネルギー密度");
+print("  3. エネルギー収支比");
+print("");
+print("次のステップ: 全体の統合評価と実現ロードマップ作成");
+print("=================================================");
+

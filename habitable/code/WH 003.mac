@@ -1,0 +1,282 @@
+/* ========================================================
+   WH-003: ワームホール通過のタイムトラベル解析 (Maxima)
+   目的: 閉時間的曲線(CTC)と因果律問題の数学的解析
+   ======================================================== */
+
+/* ---------- 1. 物理定数 ---------- */
+G: 6.67430e-11;        /* 重力定数 [m^3 kg^-1 s^-2] */
+c: 299792458;          /* 光速 [m/s] */
+hbar: 1.054571817e-34; /* 換算プランク定数 [J·s] */
+kB: 1.380649e-23;      /* ボルツマン定数 [J/K] */
+pi: float(%pi);
+
+/* ---------- 2. ワームホール計量（モリス・ソーン型） ---------- */
+/* 計量: ds² = -c²dt² + dl² + (b₀² + l²)(dθ² + sin²θ dφ²) */
+
+/* ---------- 3. 閉時間的曲線(CTC)の形成条件 ---------- */
+print("");
+print("=================================================");
+print("WH‑003: ワームホール通過のタイムトラベル解析");
+print("=================================================");
+
+/* 3.1 ワームホールの時間遅延効果 */
+Phi1: 0;  /* 口1の赤方偏移（基準） */
+Phi2: 0;  /* 口2の赤方偏移（同じと仮定） */
+
+time_dilation_factor: exp(Phi2 - Phi1);
+printf(true, "3.1 時間遅延係数 (Φ₁=~f, Φ₂=~f): ~f~%", 
+    Phi1, Phi2, time_dilation_factor);
+
+/* 3.2 移動による時間遅延（特殊相対論） */
+/* 速度 v で移動する場合の時間遅延: Δt' = Δt / γ */
+/* v = c の時の処理を追加 */
+lorentz_factor(v) := block(
+    [ratio],
+    ratio: v^2/c^2,
+    if abs(1 - ratio) < 1e-10 then 1e10  /* v ≈ c の時は大きな値 */
+    else 1/sqrt(1 - ratio)
+);
+
+print("");
+printf(true, "3.2 特殊相対論的時間遅延:~%");
+for v_frac in [0.1, 0.5, 0.9, 0.99] do (
+    v: v_frac * c,
+    g: float(lorentz_factor(v)),
+    printf(true, "   v = ~,2f c: γ = ~,6f, 時間遅延 = 1/~,6f~%", 
+        v_frac, g, g)
+);
+
+/* ---------- 4. タイムマシンの数学的モデル ---------- */
+print("");
+print("=================================================");
+print("4. タイムマシンの数学的モデル");
+print("=================================================");
+
+/* 4.1 ワームホールタイムマシン（Visserモデル） */
+delta_t_timemachine(v, T_accel, L) := block(
+    [t1, t2, total_time, time_for_mouth2],
+    /* 口2の経路: 加速→等速→減速→戻る */
+    t1: T_accel,  /* 加速時間 */
+    t2: L/v,      /* 等速移動時間 */
+    total_time: 2*t1 + t2,
+    
+    /* 特殊相対論的効果 */
+    time_for_mouth2: total_time / lorentz_factor(v),
+    
+    /* 時間差 */
+    time_for_mouth2 - total_time
+);
+
+print("");
+printf(true, "4.1 ワームホールタイムマシン (Visserモデル):~%");
+printf(true, "  加速時間 T_accel = 1年, 移動距離 L = 1光年~%");
+
+for v_frac in [0.5, 0.9, 0.99] do (
+    v: v_frac * c,
+    T_accel: 365.25*24*3600,  /* 1年 [s] */
+    L: 9.461e15,              /* 1光年 [m] */
+    delta_t: float(delta_t_timemachine(v, T_accel, L)),
+    
+    printf(true, "  v = ~,2f c: Δt = ~,2e s (~,2f 年)~%", 
+        v_frac, delta_t, delta_t/(365.25*24*3600))
+);
+
+/* 4.2 因果ループの形成条件 */
+causal_loop_condition(v, T_accel, L) := block(
+    [delta_t],
+    delta_t: delta_t_timemachine(v, T_accel, L),
+    if delta_t < 0 then "因果ループ形成可能" else "因果ループ不可"
+);
+
+print("");
+printf(true, "4.2 因果ループ形成条件:~%");
+for v_frac in [0.5, 0.9, 0.99, 0.999] do (
+    v: v_frac * c,
+    T_accel: 365.25*24*3600,
+    L: 9.461e15,
+    condition: causal_loop_condition(v, T_accel, L),
+    printf(true, "  v = ~,3f c: ~a~%", v_frac, condition)
+);
+
+/* ---------- 5. 自己無撞着条件 ---------- */
+print("");
+print("=================================================");
+print("5. 自己無撞着条件 (Novikovの自己無撞着原理)");
+print("=================================================");
+
+/* 5.1 情報の自己無撞着性 */
+self_consistency_equation(I_out, f) := block(
+    solve(I_out = f(I_out), I_out)
+);
+
+print("");
+printf(true, "5.1 情報の自己無撞着方程式:~%");
+
+/* 例1: 線形変換 f(x) = a*x + b */
+f1(x) := a*x + b;
+solutions1: self_consistency_equation(I, f1);
+printf(true, "  線形変換 f(x) = a*x + b の場合:~%");
+printf(true, "    解: ~a~%", solutions1);
+
+/* 例2: 2次変換 f(x) = x^2 */
+f2(x) := x^2;
+solutions2: self_consistency_equation(I, f2);
+printf(true, "  2次変換 f(x) = x^2 の場合:~%");
+printf(true, "    解: ~a~%", solutions2);
+
+/* 5.2 確率的自己無撞着性 */
+quantum_self_consistency(p, U) := block(
+    [p_final, consistency_condition],
+    p_final: U . p,
+    consistency_condition: p_final = p
+);
+
+print("");
+printf(true, "5.2 確率的自己無撞着性:~%");
+printf(true, "  ユニタリ時間発展演算子 U に対する条件:~%");
+printf(true, "    U|ψ⟩ = |ψ⟩  (定常状態)~%");
+printf(true, "    または確率分布が保存~%");
+
+/* ---------- 6. グラフ描画 ---------- */
+print("");
+print("=================================================");
+print("6. グラフ描画");
+print("=================================================");
+
+/* 6.1 速度 vs 時間差 */
+print("");
+print("グラフ1: 速度 vs 時間差");
+
+v_values: makelist(0.01 + 0.98*i/50, i, 0, 50);  /* 0.01c から 0.99c まで */
+delta_t_values: [];
+
+for v_frac in v_values do (
+    v: v_frac * c,
+    T_accel: 365.25*24*3600,
+    L: 9.461e15,
+    delta_t: float(delta_t_timemachine(v, T_accel, L)),
+    delta_t_values: append(delta_t_values, [delta_t])
+);
+
+plot2d([discrete, v_values, delta_t_values],
+    [xlabel, "速度 (c単位)"],
+    [ylabel, "時間差 Δt (s)"],
+    [title, "WH-003: 速度 vs 時間差 (Visserモデル)"]);
+
+/* 6.2 因果ループ形成領域 */
+print("");
+print("グラフ2: 因果ループ形成領域");
+
+v_range: makelist(0.5 + 0.49*i/20, i, 0, 20);  /* 0.5c から 0.99c まで */
+L_range: makelist(1e15 * (1 + 9*i/20), i, 0, 20);
+
+causal_boundary: [];
+for v_frac in v_range do (
+    v: v_frac * c,
+    T_accel: 365.25*24*3600,
+    /* Δt = 0 となる臨界距離 L_critical を計算 */
+    L_critical: 2*v*T_accel*(lorentz_factor(v) - 1),
+    causal_boundary: append(causal_boundary, [[v_frac, L_critical/9.461e15]])
+);
+
+plot2d([discrete, causal_boundary],
+    [xlabel, "速度 (c単位)"],
+    [ylabel, "臨界距離 (光年単位)"],
+    [title, "WH-003: 因果ループ形成臨界条件"],
+    [style, [lines, 2]],
+    [color, red]);
+
+/* 6.3 自己無撞着解の可視化 */
+print("");
+print("グラフ3: 自己無撞着解の探索");
+
+a_values: makelist(-2 + 4*i/20, i, 0, 20);
+fixed_points: [];
+
+for a in a_values do (
+    if a = 1 then (
+        fp: 2  /* 無限個の解を示すマーカー */
+    ) else (
+        fp: 0  /* 唯一の解 x=0 */
+    ),
+    fixed_points: append(fixed_points, [[a, float(fp)]])
+);
+
+plot2d([discrete, a_values, makelist(fp, fp, fixed_points)],
+    [xlabel, "パラメータ a"],
+    [ylabel, "不動点の値"],
+    [title, "WH-003: 線形変換の自己無撞着解"],
+    [y, -1, 3]);
+
+/* ---------- 7. ファイル出力 ---------- */
+print("");
+print("=================================================");
+print("7. 結果の保存");
+print("=================================================");
+
+with_stdout("WH003_timemachine_params.txt",
+    printf(true, "v_fraction,lorentz_factor,time_difference_s,causal_loop_possible~%"),
+    for i:1 thru length(v_values) do (
+        v_frac: v_values[i],
+        v: v_frac * c,
+        g: float(lorentz_factor(v)),
+        T_accel: 365.25*24*3600,
+        L: 9.461e15,
+        delta_t: float(delta_t_timemachine(v, T_accel, L)),
+        possible: if delta_t < 0 then "YES" else "NO",
+        
+        printf(true, "~f,~f,~e,~a~%", v_frac, g, delta_t, possible)
+    )
+);
+
+print("✅ 計算結果を WH003_timemachine_params.txt に保存しました");
+
+/* ---------- 8. 追加解析: 量子時間トラベル ---------- */
+print("");
+print("=================================================");
+print("8. 量子時間トラベル解析");
+print("=================================================");
+
+/* 8.1 量子テレポーテーションとの類似性 */
+print("");
+printf(true, "8.1 量子テレポーテーションとの比較:~%");
+printf(true, "  ワームホール = 量子もつれの幾何学的実現?~%");
+printf(true, "  ER = EPR 予想 (Maldacena, 2013)~%");
+
+/* 8.2 時間方向の量子もつれ */
+temporal_entanglement_entropy(T, beta) := block(
+    if T > 0 then log(1 + exp(-beta/T)) else 0
+);
+
+print("");
+printf(true, "8.2 時間的もつれエントロピー:~%");
+for T in [1e-10, 1e-8, 1e-6] do (
+    beta: hbar/(kB*300),
+    S: float(temporal_entanglement_entropy(T, beta)),
+    printf(true, "  T = ~e s: S ≈ ~e~%", T, S)
+);
+
+/* ---------- 9. まとめと結論 ---------- */
+print("");
+print("=================================================");
+print("✅ WH‑003 タイムトラベル解析 完了");
+print("=================================================");
+print("");
+print("主要な結果:");
+print("  1. ワームホールタイムマシンの形成条件を導出");
+print("  2. 因果ループが形成される臨界速度・距離を計算");
+print("  3. 自己無撞着条件の数学的定式化");
+print("  4. 量子時間トラベルの可能性を探査");
+print("");
+print("生成されたファイル:");
+print("  1. WH003_timemachine_params.txt - 詳細計算データ");
+print("");
+print("表示されたグラフ:");
+print("  1. 速度 vs 時間差");
+print("  2. 因果ループ形成臨界条件");
+print("  3. 自己無撞着解の探索");
+print("");
+print("次のステップ: WH-004 (エキゾチック物質生成コスト)");
+print("または Python連成版 WH-003b で詳細シミュレーション");
+print("=================================================");
+

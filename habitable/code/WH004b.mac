@@ -1,0 +1,260 @@
+/* ========================================================
+   WH-004b: エキゾチック物質生成のエネルギーコスト計算 (修正版)
+   目的: より現実的なエネルギー収支評価と実現ロードマップ作成
+   ======================================================== */
+
+/* ---------- 1. 物理定数 ---------- */
+G: 6.67430e-11;        /* 重力定数 [m^3 kg^-1 s^-2] */
+c: 299792458;          /* 光速 [m/s] */
+hbar: 1.054571817e-34; /* 換算プランク定数 [J·s] */
+kB: 1.380649e-23;      /* ボルツマン定数 [J/K] */
+pi: float(%pi);
+
+/* ---------- 2. 問題点の分析 ---------- */
+print("");
+print("=================================================");
+print("WH‑004b: エネルギーコスト計算 (修正版)");
+print("問題点の分析");
+print("=================================================");
+
+print("");
+printf(true, "問題点1: エネルギー収支計算の過大評価~%");
+printf(true, "  前回の計算ではカシミール装置のエネルギーを過大評価~%");
+printf(true, "  平板の静止エネルギー(E=mc²)は実際には回収可能~%");
+
+print("");
+printf(true, "問題点2: スケーリングの誤り~%");
+printf(true, "  ワームホールエネルギー ∝ b₀~%");
+printf(true, "  カシミールエネルギー ∝ 1/d⁴ ∝ b₀²~%");
+printf(true, "  ∴ 大きなb₀で有利になる可能性~%");
+
+print("");
+printf(true, "問題点3: 代替技術の考慮不足~%");
+printf(true, "  カシミール効果以外の負のエネルギー生成技術~%");
+printf(true, "  量子光学、メタマテリアル、超伝導など~%");
+
+/* ---------- 3. 修正されたエネルギー収支計算 ---------- */
+print("");
+print("=================================================");
+print("3. 修正されたエネルギー収支計算");
+print("=================================================");
+
+/* 3.1 ワームホールの総負のエネルギー（より正確な計算） */
+E_total_wh_corrected(b0) := block(
+    [integral_result, R, integrand, N, dl, sum, l_val, i],
+    R: 10 * b0,  /* 積分範囲 */
+    integrand(l) := 4*%pi*(b0^2 + l^2) * abs(-c^4/(8*%pi*G) * b0^2/(b0^2 + l^2)^2),
+    
+    /* 数値積分（区分求積法） */
+    N: 1000,
+    dl: 2*R/N,
+    sum: 0,
+    for i:0 thru N-1 do (
+        l_val: -R + (i+0.5)*dl,
+        sum: sum + float(integrand(l_val)) * dl
+    ),
+    sum
+);
+
+/* 3.2 カシミール装置の実用的エネルギーコスト */
+E_casimir_practical(A, d) := block(
+    [E_casimir, E_setup, thickness, rho_gold, m_gold, atoms_per_kg, E_manufacture, T_operating, Q_cooling],
+    /* カシミールエネルギー（負の値） */
+    E_casimir: abs(-%pi^2 * hbar * c / (240 * d^4)) * A * d,
+    
+    /* 装置の実用的エネルギーコスト */
+    thickness: 100e-9,  /* 100nm */
+    rho_gold: 19300,
+    m_gold: 2 * rho_gold * A * thickness,
+    
+    /* 製造エネルギー */
+    atoms_per_kg: 3e25,
+    E_manufacture: m_gold * atoms_per_kg * 1.6e-19,
+    
+    /* 維持エネルギー */
+    T_operating: 0.1,  /* 100mK */
+    Q_cooling: m_gold * 130 * (300 - T_operating),
+    
+    E_setup: E_manufacture + Q_cooling,
+    
+    [E_casimir, E_setup]
+);
+
+/* 最適なカシミール間隔を計算 */
+d_optimal(b0) := block(
+    [rho_needed],
+    rho_needed: c^4/(8*%pi*G * b0^2),
+    float((%pi^2 * hbar * c / (240 * rho_needed))^(1/4))
+);
+
+/* ---------- 4. 再計算結果 ---------- */
+print("");
+print("=================================================");
+print("4. 再計算結果");
+print("=================================================");
+
+print("");
+printf(true, "4.1 修正されたエネルギー収支 (b₀ = 1m):~%");
+b0_test: 1.0;
+E_wh_corr: float(E_total_wh_corrected(b0_test));
+printf(true, "  ワームホール総負のエネルギー: ~e J~%", E_wh_corr);
+
+d_opt: d_optimal(b0_test);
+A_opt: %pi * (10*b0_test)^2;
+[E_cas_opt, E_setup_opt]: E_casimir_practical(A_opt, d_opt);
+
+printf(true, "  最適カシミール間隔: ~e m~%", d_opt);
+printf(true, "  カシミール負のエネルギー: ~e J~%", E_cas_opt);
+printf(true, "  装置の実用エネルギーコスト: ~e J~%", E_setup_opt);
+
+energy_gain_corr: E_wh_corr - E_setup_opt;
+printf(true, "  正味エネルギー利得: ~e J~%", energy_gain_corr);
+printf(true, "  エネルギー収支比 (E_wh/E_setup): ~f~%", E_wh_corr/E_setup_opt);
+
+/* ---------- 5. スケーリング分析 ---------- */
+print("");
+print("=================================================");
+print("5. スケーリング分析");
+print("=================================================");
+
+print("");
+printf(true, "5.1 様々なスロート半径でのエネルギー収支:~%");
+
+b0_values: [0.1, 0.5, 1.0, 5.0, 10.0, 50.0, 100.0];
+results: [];
+
+for b0_val in b0_values do (
+    E_wh_val: float(E_total_wh_corrected(b0_val)),
+    d_opt_val: d_optimal(b0_val),
+    A_opt_val: %pi * (10*b0_val)^2,
+    [E_cas_val, E_setup_val]: E_casimir_practical(A_opt_val, d_opt_val),
+    ratio: E_wh_val / E_setup_val,
+    
+    feasibility: if ratio > 100 then "極めて困難"
+                else if ratio > 10 then "困難"
+                else if ratio > 1 then "挑戦的"
+                else if ratio > 0.1 then "可能性あり"
+                else if ratio > 0.01 then "有望"
+                else "非常に有望",
+    
+    results: append(results, [[b0_val, E_wh_val, E_setup_val, ratio, feasibility]])
+);
+
+/* 修正: フォーマット文字列を簡素化 */
+printf(true, "  b0[m]    E_wh[J]        E_setup[J]      比率    評価~%");
+printf(true, "  ---------------------------------------------------------~%");
+for r in results do (
+    printf(true, "  ~5f   ~6e   ~6e   ~8f   ~a~%", 
+        r[1], r[2], r[3], r[4], r[5])  /* ~S.1f → ~5f に修正 */
+);
+
+/* ---------- 6. グラフ描画 ---------- */
+print("");
+print("=================================================");
+print("6. グラフ描画");
+print("=================================================");
+
+/* 6.1 エネルギー収支比のグラフ */
+print("");
+print("グラフ1: スロート半径 vs エネルギー収支比");
+
+b0_plot: makelist(10^(-1 + 3*i/20), i, 0, 20);
+ratios_plot: [];
+
+for b0_plot_val in b0_plot do (
+    E_wh_plot: float(E_total_wh_corrected(b0_plot_val)),
+    d_opt_plot: d_optimal(b0_plot_val),
+    A_opt_plot: %pi * (10*b0_plot_val)^2,
+    [E_cas_plot, E_setup_plot]: E_casimir_practical(A_opt_plot, d_opt_plot),
+    ratio_plot: E_wh_plot / E_setup_plot,
+    ratios_plot: append(ratios_plot, [ratio_plot])
+);
+
+plot2d([discrete, b0_plot, ratios_plot],
+    [xlabel, "スロート半径 b₀ (m)"],
+    [ylabel, "エネルギー収支比 (E_wh / E_setup)"],
+    [title, "WH-004b: エネルギー収支比 (修正版)"],
+    [logx, true],
+    [logy, true]);
+
+/* ---------- 7. 実現ロードマップ ---------- */
+print("");
+print("=================================================");
+print("7. 実現ロードマップ");
+print("=================================================");
+
+print("");
+printf(true, "7.1 技術開発フェーズ:~%");
+printf(true, "  フェーズ1 (現在〜2030年): 基礎研究~%");
+printf(true, "    - ナノスケールカシミール効果の精密制御~%");
+printf(true, "    - 量子真空の負のエネルギー生成実験~%");
+printf(true, "    - 微小ワームホール(b₀ < 1mm)の理論検証~%");
+
+printf(true, "  フェーズ2 (2030〜2050年): 技術実証~%");
+printf(true, "    - マイクロワームホール(b₀ ≈ 1cm)の生成実験~%");
+printf(true, "    - 安定化技術の開発~%");
+printf(true, "    - エネルギー収支の実証~%");
+
+printf(true, "  フェーズ3 (2050〜2100年): 実用化~%");
+printf(true, "    - 実用的ワームホール(b₀ ≈ 1m)の建設~%");
+printf(true, "    - タイムトラベル実験~%");
+printf(true, "    - 恒星間航行への応用~%");
+
+print("");
+printf(true, "7.2 必要な技術革新:~%");
+printf(true, "  1. 量子真空工学: 負のエネルギーの大規模生成~%");
+printf(true, "  2. ナノ・ピコメートル精度制御技術~%");
+printf(true, "  3. 極低温量子デバイス~%");
+printf(true, "  4. 自己安定化ワームホール制御~%");
+printf(true, "  5. 因果律保護メカニズム~%");
+
+/* ---------- 8. ファイル出力 ---------- */
+print("");
+print("=================================================");
+print("8. 結果の保存");
+print("=================================================");
+
+with_stdout("WH004b_energy_cost_corrected.txt",
+    printf(true, "b0_m,E_wh_J,E_setup_J,energy_ratio,feasibility,technology_level,roadmap_phase~%"),
+    
+    for r in results do (
+        [b0_val, E_wh_val, E_setup_val, ratio, feasibility] : r,
+        
+        tech_level: if ratio > 100 then "現在技術では不可能"
+                   else if ratio > 10 then "近未来技術が必要"
+                   else if ratio > 1 then "中未来技術が必要"
+                   else if ratio > 0.1 then "遠未来技術で可能"
+                   else "理論的には可能",
+        
+        phase: if b0_val < 0.01 then "フェーズ1 (基礎研究)"
+              else if b0_val < 0.1 then "フェーズ2 (技術実証)"
+              else "フェーズ3 (実用化)",
+        
+        printf(true, "~f,~e,~e,~f,~a,~a,~a~%", 
+            b0_val, E_wh_val, E_setup_val, ratio, feasibility, tech_level, phase)
+    )
+);
+
+print("✅ 修正結果を WH004b_energy_cost_corrected.txt に保存しました");
+
+/* ---------- 9. まとめと結論 ---------- */
+print("");
+print("=================================================");
+print("✅ WH‑004b エネルギーコスト計算 (修正版) 完了");
+print("=================================================");
+print("");
+print("主要な修正点:");
+print("  1. エネルギー収支計算の過大評価を修正");
+print("  2. 実用的な装置エネルギーコストを考慮");
+print("  3. スケーリング効果を正しく評価");
+print("");
+print("実現可能性評価:");
+for r in results do (
+    if r[5] != "極めて困難" and r[5] != "困難" then (
+        printf(true, "  b₀ = ~5f m: ~a (比率: ~f)~%", r[1], r[5], r[4])  /* 修正 */
+    )
+);
+print("");
+print("次のステップ: 全体統合評価と詳細なロードマップ作成");
+print("=================================================");
+

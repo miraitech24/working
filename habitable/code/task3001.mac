@@ -1,0 +1,36 @@
+/* #3001: スロート半径の幾何学的維持解析とデータ出力 */
+kill(all)$
+
+/* 1. 物理定数と数式の定義 */
+c : 2.99792458e8$    /* 光速 [m/s] */
+G : 6.67430e-11$      /* 万有引力定数 [m^3/kg/s^2] */
+
+/* モリス＝ソーン模型による負のエネルギー密度 rho の関数 */
+rho_func(r0) := - (c^4) / (8 * %pi * G * r0^2)$
+
+/* 2. 計算の実行 (r0 = 1.0 m) */
+r0_val : 1.0$
+rho_val : float(rho_func(r0_val))$
+
+/* 3. 結果の表示 (数式表記) */
+print("--- 物理定義式 ---")$
+disp(rho = - 'c^4 / (8 * %pi * G * r0^2))$
+print("計算結果 (r0 = 1.0m):")$
+print("rho_threshold =", rho_val, "[J/m^3]")$
+
+/* 4. Python連成用ファイル出力 (JSONフォーマット) */
+/* readme.md: maxima -b #3001.mac で実行 */
+filename : "params_3001.json"$
+s : openw(filename)$
+printf(s, "{~%")$
+printf(s, "  \"r0_min\": ~e,~%", r0_val)$
+printf(s, "  \"rho_threshold\": ~e,~%", rho_val)$
+printf(s, "  \"unit\": \"J/m^3\",~%")$
+printf(s, "  \"source\": \"#3001_Maxima\"~%")$
+printf(s, "}~%")$
+close(s)$
+
+print("--- ファイル出力完了: ", filename, " ---")$
+
+
+

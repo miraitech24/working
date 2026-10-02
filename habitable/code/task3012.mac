@@ -1,0 +1,23 @@
+/* #3012: Centauri AB Coupled Energy Network Calculation */
+load("numericalio")$
+
+/* --- GUIで表示したい場合は以下の2行をコメントアウトしてください --- */
+/* set_plot_option([png_file, "task3012_output.png"])$ */
+/* set_plot_option([gnuplot_term, png])$ */
+/* --------------------------------------------------------- */
+
+/* 周期的な重力エネルギー回収モデル (単位: PW) */
+P_total(t) := 2.5 + 0.375 * sin(2 * %pi * t / 80)$ 
+P_per_node(t) := (P_total(t) / 865) * 1000$
+
+/* Python (#3013) 受渡用データの出力 */
+output_data: float(makelist([t, P_total(t)], t, 0, 300, 1))$
+write_data(output_data, "energy_grid_pw.csv", comma)$
+
+/* グラフ作成：閉じ括弧とスタイルの修正 */
+plot2d([P_total(t), P_per_node(t)], [t, 0, 300], 
+    [xlabel, "Years after Arrival (Generation 0-10)"], 
+    [ylabel, "Power"],
+    [legend, "Total Grid Power (PW)", "Power per Node (TW)"],
+    [style, [lines, 3, 1], [lines, 3, 2]]
+)$ /* ← ここに閉じ括弧が必要でした */

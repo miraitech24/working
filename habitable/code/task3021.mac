@@ -1,0 +1,41 @@
+/* #3021: Kerr BH Penrose Process Efficiency Calculation */
+load("numericalio")$
+
+/* 1. ISCO 半径とスピンパラメータの定義 */
+r_isco_target : 1.1818$
+
+z1(a) := 1 + (1 - a^2)^(1/3) * ((1 + a)^(1/3) + (1 - a)^(1/3))$
+z2(a) := sqrt(3 * a^2 + z1(a)^2)$
+r_isco(a) := (3 + z2(a) - sqrt((3 - z1(a)) * (3 + z1(a) + 2 * z2(a))))$
+
+/* 2. ターゲット半径に対応する a を算出 */
+sol_a : find_root(r_isco(a) = r_isco_target, a, 0.5, 0.999)$
+print("Target Spin Parameter a:", sol_a)$
+
+/* 3. 効率計算関数の定義 */
+calc_efficiency(spin) := block(
+    [M: 1.0, J, Mirr],
+    /* スピンが1を超えないようガードを入れる (数値誤差対策) */
+    if spin > 1.0 then spin : 1.0,
+    J : spin * M^2,
+    Mirr : sqrt((M^2 + sqrt(M^4 - J^2))/2),
+    return(float((M - Mirr) / M))
+)$
+
+eta_max : calc_efficiency(sol_a)$
+print("Energy Extraction Efficiency eta:", eta_max)$
+
+/* 4. データ出力 */
+output_list : makelist([s, calc_efficiency(s)], s, 0, sol_a, sol_a/100)$
+write_data(output_list, "penrose_efficiency.csv", comma)$
+
+/* 5. グラフ作成 (修正ポイント: オプションをplot2d内に統合) */
+/* 5. グラフ作成: GUIの別ウィンドウ(Gnuplot)で表示する設定 */
+plot2d(calc_efficiency(s), [s, 0, 0.999],
+    [xlabel, "Black Hole Spin Parameter (a/M)"],
+    [ylabel, "Extractable Energy Ratio (eta)"],
+    [legend, "Penrose Efficiency"],
+    [title, "Task #3021: BH Battery Potential"],
+    /* ターミナルを外部ウィンドウ用に指定 (Windowsなら qt や wxt が安定) */
+    [gnuplot_term, qt]
+)$
